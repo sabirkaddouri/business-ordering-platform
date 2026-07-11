@@ -33,7 +33,7 @@ A full-stack ordering and e-commerce platform built for O Souly, a Moroccan arti
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/osouly/osouly-platform.git
+   git clone git clone https://github.com/sabirkaddouri/business-ordering-platform.git
    ```
 
 2. **Install dependencies:**
