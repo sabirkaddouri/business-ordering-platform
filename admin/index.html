@@ -103,6 +103,9 @@
         <button class="nav-item" data-panel="products" id="navProducts">
           <span class="nav-icon">🧁</span> <span data-i18n="sidebar.products">المنتجات</span>
         </button>
+        <button class="nav-item" data-panel="categories" id="navCategories" style="padding-inline-start: 36px; font-size: 13px;">
+          <span class="nav-icon">🏷️</span> <span>Catégories</span>
+        </button>
         <button class="nav-item" data-panel="promotions" id="navPromotions">
           <span class="nav-icon">🏷️</span> <span data-i18n="sidebar.promotions">Promotions</span>
         </button>
@@ -280,6 +283,68 @@
           </div>
         </div>
       </div>
+
+      <!-- Categories Panel -->
+      <div class="panel" id="panelCategories">
+        <div class="panel-header">
+          <h3>🏷️ Gestion des catégories</h3>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start;">
+          <!-- Left: Categories List -->
+          <div class="card">
+            <div class="card-header"><h3>Catégories existantes</h3></div>
+            <div class="table-wrap">
+              <table class="data-table" id="categoriesTable">
+                <thead>
+                  <tr>
+                    <th style="width:60px;">Ordre</th>
+                    <th style="width:50px;">Icône</th>
+                    <th>Nom</th>
+                    <th>Produits</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="categoriesBody"><tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-light);">Chargement...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Right: Create / Edit Form -->
+          <div class="card">
+            <div class="card-header">
+              <h3 id="catFormTitle">Nouvelle catégorie</h3>
+            </div>
+            <div style="padding: 20px;">
+              <form id="categoryForm">
+                <input type="hidden" id="catEditId">
+                <div class="form-group">
+                  <label>Nom de la catégorie *</label>
+                  <input type="text" id="catName" placeholder="Ex: Miels &amp; Tartinades" required>
+                </div>
+                <div class="form-group">
+                  <label>Icône</label>
+                  <input type="text" id="catIcon" placeholder="Ex: 🍯">
+                  <small style="color:var(--text-light);font-size:12px;display:block;margin-top:4px;">Entrez un emoji ou laissez vide</small>
+                </div>
+                <div class="form-group">
+                  <label>Description</label>
+                  <textarea id="catDescription" rows="3" placeholder="Ex: Miels artisanaux et tartinades 100% naturelles"></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Ordre d'affichage</label>
+                  <input type="text" inputmode="numeric" id="catOrder" placeholder="Ex: 1">
+                  <small style="color:var(--text-light);font-size:12px;display:block;margin-top:4px;">Détermine l'ordre dans la liste des catégories</small>
+                </div>
+                <div id="catFormError" style="color:var(--danger);font-size:13px;margin-bottom:12px;display:none;"></div>
+                <div style="display:flex;gap:10px;">
+                  <button type="submit" class="btn btn-primary" style="flex:1;">Enregistrer</button>
+                  <button type="button" class="btn btn-outline" id="catCancelBtn" style="display:none;" onclick="resetCatForm()">Annuler</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Promotions Panel -->
       <div class="panel" id="panelPromotions">
         <div class="panel-header">
@@ -329,7 +394,7 @@
               <small style="color:var(--text-light); font-size: 11px; display: block; margin-top: 4px;">Si vous choisissez produits spécifiques, le code ne fonctionnera que si la commande contient au moins un des produits sélectionnés.</small>
             </div>
 
-            <div class="form-group" id="promoProductsGroup" style="grid-column: 1 / -1; display: none;">
+            <div class="form-group" id="promoProductsGroup" style="grid-column: 1 / -1;">
               <label>Produits concernés</label>
               <div id="promoProductCheckboxList" style="max-height: 220px; overflow-y: auto; border: 1.5px solid var(--dark-border); border-radius: 8px; padding: 8px 12px; background: var(--bg-input); display: flex; flex-direction: column; gap: 6px;">
                 <span style="color: var(--text-light); font-size: 13px;">Chargement des produits...</span>
@@ -725,6 +790,240 @@
       </div>
     </div>
   </div>
+
+  
+  <!-- Custom Category Delete Modal & Styles -->
+  <style>
+    /* Layer 1 — Overlay */
+    .cat-del-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease;
+    }
+    .cat-del-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Layer 2 — Modal box */
+    .cat-del-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: #F5F0E8;
+      border-radius: 12px;
+      padding: 32px;
+      width: 420px;
+      max-width: 90vw;
+      z-index: 1001;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      border-top: 4px solid #C4622D;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+    }
+    .cat-del-modal.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .cat-del-modal.hide {
+      opacity: 0;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(0.9);
+      transition: all 0.15s ease;
+    }
+
+    /* Icon */
+    .cat-del-icon {
+      font-size: 48px;
+      color: #C4622D;
+      text-align: center;
+      margin-bottom: 16px;
+      line-height: 1;
+    }
+
+    /* Title */
+    .cat-del-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: #3E2C1A;
+      text-align: center;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    /* Category Name Highlight */
+    .cat-del-name-container {
+      text-align: center;
+      font-size: 15px;
+      color: #3E2C1A;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .cat-del-name {
+      color: #C4622D;
+      font-weight: bold;
+      display: block;
+      margin-top: 4px;
+    }
+
+    /* Warning message */
+    .cat-del-warning-msg {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: #6B5C4E;
+      text-align: center;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    /* Products Warning */
+    .cat-del-products-warning {
+      background: #F0D5C8;
+      border-left: 3px solid #C4622D;
+      padding: 12px;
+      font-size: 13.5px;
+      color: #3E2C1A;
+      margin-bottom: 24px;
+      border-radius: 4px;
+      line-height: 1.5;
+    }
+
+    /* Buttons */
+    .cat-del-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .cat-del-btn {
+      height: 48px;
+      width: 48%;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .cat-del-btn-cancel {
+      background: transparent;
+      border: 1.5px solid #6B7C3E;
+      color: #6B7C3E;
+    }
+    .cat-del-btn-cancel:hover {
+      background: #6B7C3E;
+      color: #F5F0E8;
+    }
+    .cat-del-btn-confirm {
+      background: #C4622D;
+      border: none;
+      color: #F5F0E8;
+    }
+    .cat-del-btn-confirm:hover:not(:disabled) {
+      background: #A8501F;
+    }
+    .cat-del-btn-confirm:disabled {
+      background: #9E8C7A;
+      color: #E0D8D0;
+      cursor: not-allowed;
+    }
+
+    /* Close Button */
+    .cat-del-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      color: #3E2C1A;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding: 0;
+      transition: color 0.2s ease;
+    }
+    .cat-del-close:hover {
+      color: #C4622D;
+    }
+    
+    /* Success Toast */
+    .cat-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #6B7C3E;
+      color: #F5F0E8;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease;
+    }
+    .cat-toast.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    .cat-toast.hide {
+      opacity: 0;
+      visibility: visible;
+      transition: opacity 0.3s ease;
+    }
+    
+    @media (max-width: 600px) {
+      .cat-del-modal {
+        width: 90%;
+        padding: 24px 20px;
+      }
+      .cat-del-btn {
+        font-size: 14px;
+      }
+    }
+  </style>
+
+  <div class="cat-del-overlay" id="catDelOverlay"></div>
+  <div class="cat-del-modal" id="catDelModal">
+    <button class="cat-del-close" id="catDelCloseBtn">&times;</button>
+    <div class="cat-del-icon">⚠️</div>
+    <h3 class="cat-del-title">Supprimer la catégorie ?</h3>
+    <div class="cat-del-name-container">
+      Vous êtes sur le point de supprimer la catégorie<br>
+      <strong class="cat-del-name" id="catDelNameHighlight"></strong>
+    </div>
+    <p class="cat-del-warning-msg">Cette action est irréversible. La catégorie sera définitivement supprimée.</p>
+    
+    <div class="cat-del-products-warning" id="catDelProductsWarning" style="display: none;">
+      ⚠️ Cette catégorie contient <strong id="catDelCount">X</strong> produit(s). Veuillez d'abord déplacer ou supprimer ces produits avant de supprimer cette catégorie.
+    </div>
+    
+    <div class="cat-del-error" id="catDelError" style="display: none; color: #C4622D; margin-bottom: 16px; font-size: 14px; text-align: center;"></div>
+
+    <div class="cat-del-actions">
+      <button class="cat-del-btn cat-del-btn-cancel" id="catDelCancelBtn">Annuler</button>
+      <button class="cat-del-btn cat-del-btn-confirm" id="catDelConfirmBtn">Oui, supprimer</button>
+    </div>
+  </div>
+
+  <div class="cat-toast" id="catToast">Catégorie supprimée avec succès</div>
 
   <!-- Toast -->
   <div class="toast" id="adminToast"></div>

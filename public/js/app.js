@@ -161,9 +161,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (savedCart) cart = JSON.parse(savedCart);
   
   loadShopSettings();
-  loadProducts();
-  setupCityDropdown();
-  checkPromoAvailability();
+  if (document.getElementById('productsGrid')) {
+    loadProducts();
+  }
+  if (document.getElementById('cityDropdown')) {
+    setupCityDropdown();
+  }
+  if (document.getElementById('promoSection')) {
+    checkPromoAvailability();
+  }
+  if (document.getElementById('productDetailPage')) {
+    loadProductDetail();
+  }
   updateCartUI();
   setupEventListeners();
   setupNavbar();
@@ -188,7 +197,7 @@ async function checkPromoAvailability() {
 // --- Fetch Data ---
 async function loadCategories() {
   try {
-    const res = await fetch(`${API}/api/products/meta/categories`);
+    const res = await fetch(`${API}/api/categories`);
     categories = await res.json();
     renderCategoryTabs();
   } catch (err) {
@@ -274,7 +283,7 @@ function createProductCard(product) {
   if (isOutOfStock) badges += '<span class="card-badge" style="background:#e53e3e;">Rupture de stock</span>';
 
   return `
-    <div class="product-card" data-id="${product.id}">
+    <div class="product-card" data-id="${product.id}" style="cursor: pointer;" onclick="window.location.href='/product.html?id=${product.id}'">
       <div class="card-image">
         ${imageContent}
         <div style="position:absolute; top:12px; left:12px; display:flex;">${badges}</div>
@@ -869,3 +878,188 @@ function setupCityDropdown() {
   });
 }
 
+
+// --- Product Detail Page ---
+async function loadProductDetail() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const id = urlParams.get('id');
+  
+  const container = document.getElementById('productDetailContainer');
+  if (!id) {
+    container.innerHTML = '<div style="padding: 40px; text-align: center;"><h3>Produit introuvable</h3><a href="/" class="btn btn-primary" style="margin-top: 16px;">Retour à la boutique</a></div>';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/api/products/${id}`);
+    if (!res.ok) throw new Error('Not found');
+    const product = await res.json();
+    
+    // Update Page Meta
+    document.title = `${product.name} — O Souly`;
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', (product.description || '').substring(0, 150));
+    }
+
+    renderProductDetailUI(product);
+    
+    // Load related products
+    fetch(`${API}/api/products?available=1&category=${encodeURIComponent(product.category_name || '')}`)
+      .then(r => r.json())
+      .then(related => {
+        const relatedGrid = document.getElementById('relatedProductsGrid');
+        if (!relatedGrid) return;
+        const others = related.filter(p => p.id !== product.id).slice(0, 4);
+        if (others.length > 0) {
+          relatedGrid.innerHTML = others.map(p => createProductCard(p)).join('');
+          attachCardListeners(relatedGrid);
+          document.getElementById('relatedProductsSection').style.display = 'block';
+        } else {
+          document.getElementById('relatedProductsSection').style.display = 'none';
+        }
+      });
+      
+  } catch (err) {
+    container.innerHTML = '<div style="padding: 40px; text-align: center;"><h3>Produit introuvable</h3><a href="/" class="btn btn-primary" style="margin-top: 16px;">Retour à la boutique</a></div>';
+  }
+}
+
+function renderProductDetailUI(product) {
+  // Breadcrumb
+  const bcCat = document.getElementById('bcCategory');
+  if (bcCat) {
+    bcCat.textContent = product.category_name || 'Boutique';
+    bcCat.href = `/?category=${encodeURIComponent(product.category_name || 'all')}`;
+  }
+  const bcProd = document.getElementById('bcProduct');
+  if (bcProd) bcProd.textContent = product.name;
+
+  // Image
+  const imgUrl = product.image && product.image !== 'default.jpg' 
+    ? (product.image.startsWith('http') ? product.image : `/images/${product.image}`)
+    : null;
+  
+  const pdImage = document.getElementById('pdImage');
+  if (pdImage) {
+    if (imgUrl) {
+      pdImage.innerHTML = `<img src="${imgUrl}" alt="${product.name}" style="width:100%; border-radius:12px; object-fit:cover; aspect-ratio: 1/1;">`;
+    } else {
+      pdImage.innerHTML = `<div class="card-image" style="aspect-ratio: 1/1; border-radius:12px; height:100%;"><span class="placeholder-emoji">${product.category_icon || '🍰'}</span></div>`;
+    }
+  }
+
+  // Info
+  if (document.getElementById('pdName')) document.getElementById('pdName').textContent = product.name;
+  if (document.getElementById('pdCategory')) document.getElementById('pdCategory').innerHTML = `${product.category_icon || ''} ${product.category_name || 'Boutique'}`;
+  
+  if (product.featured && document.getElementById('pdFeatured')) {
+    document.getElementById('pdFeatured').innerHTML = '<span class="card-badge" style="margin-bottom:12px; display:inline-block;">⭐ Coup de cœur</span>';
+  }
+
+  // Tags (mock implementation if tags exist in product object)
+  if (product.tags && product.tags.length > 0 && document.getElementById('pdTags')) {
+    const tagsHtml = product.tags.map(t => `<span class="card-badge" style="background: var(--sand); color: var(--text); border: 1px solid var(--dark-border); margin-right: 8px; margin-bottom: 12px; display:inline-block;">${t}</span>`).join('');
+    document.getElementById('pdTags').innerHTML = tagsHtml;
+  }
+
+  // Price & Size (mock implementation for sizes if provided)
+  const priceContainer = document.getElementById('pdPriceContainer');
+  if (priceContainer) {
+    if (product.sizeOptions && product.sizeOptions.length > 0) {
+      let sizeOptionsHtml = '<select id="pdSizeSelect" class="select-input" style="margin-bottom:16px;">';
+      product.sizeOptions.forEach((size, idx) => {
+        sizeOptionsHtml += `<option value="${size.price}" ${idx === 0 ? 'selected' : ''}>${size.label}</option>`;
+      });
+      sizeOptionsHtml += `</select><div id="pdDynamicPrice" class="card-price" style="font-size:24px; margin-bottom: 24px;">${product.sizeOptions[0].price.toFixed(2)} MAD</div>`;
+      priceContainer.innerHTML = sizeOptionsHtml;
+
+      document.getElementById('pdSizeSelect').addEventListener('change', (e) => {
+        document.getElementById('pdDynamicPrice').textContent = `${parseFloat(e.target.value).toFixed(2)} MAD`;
+      });
+    } else {
+      priceContainer.innerHTML = `<div class="card-price" style="font-size:24px; margin-bottom: 24px;">${product.price.toFixed(2)} MAD</div>`;
+    }
+  }
+
+  // Stock & Add to Cart
+  const isOutOfStock = product.trackStock && product.stock <= 0;
+  const stockWarning = document.getElementById('pdStockWarning');
+  const qtyInput = document.getElementById('pdQuantity');
+  const addBtn = document.getElementById('pdAddBtn');
+
+  if (stockWarning) stockWarning.innerHTML = ''; // reset
+  
+  if (isOutOfStock) {
+    if (stockWarning) stockWarning.innerHTML = '<span class="card-badge" style="background:#e53e3e; margin-bottom:16px; display:inline-block;">Rupture de stock</span>';
+    if (addBtn) {
+      addBtn.disabled = true;
+      addBtn.textContent = 'Indisponible';
+      addBtn.style.opacity = '0.5';
+      addBtn.style.cursor = 'not-allowed';
+    }
+    if (qtyInput) qtyInput.disabled = true;
+  } else {
+    if (product.trackStock && product.stock <= 5 && stockWarning) {
+      stockWarning.innerHTML = `<span class="card-badge" style="background:var(--secondary); margin-bottom:16px; display:inline-block;">Plus que ${product.stock} en stock</span>`;
+    }
+    
+    if (addBtn && qtyInput) {
+      if (product.trackStock) {
+        qtyInput.max = product.stock;
+      } else {
+        qtyInput.max = 99;
+      }
+      
+      addBtn.onclick = () => {
+        const qty = parseInt(qtyInput.value) || 1;
+        const existing = cart.find(item => item.id === product.id);
+        const currentQty = existing ? existing.quantity : 0;
+        
+        if (product.trackStock && currentQty + qty > product.stock) {
+          showToast(`Stock insuffisant (${product.stock} maximum).`);
+          return;
+        }
+        
+        if (existing) {
+          existing.quantity += qty;
+        } else {
+          cart.push({
+            id: product.id,
+            name: product.name,
+            price: product.price, // if sizes were used, we'd pick the size price here
+            image: product.image,
+            category_icon: product.category_icon || '🍰',
+            quantity: qty
+          });
+        }
+        saveCart();
+        updateCartUI();
+        showToast(`${product.name} ajouté au panier`);
+      };
+    }
+  }
+
+  // Description
+  const descText = product.description ? product.description.replace(/\n/g, '<br>') : 'Aucune description disponible.';
+  if (document.getElementById('pdDescription')) document.getElementById('pdDescription').innerHTML = descText;
+
+  // Ingredients
+  if (product.ingredients && product.ingredients.trim() !== '') {
+    const ingSec = document.getElementById('pdIngredientsSection');
+    if (ingSec) ingSec.style.display = 'block';
+    if (document.getElementById('pdIngredients')) document.getElementById('pdIngredients').innerHTML = product.ingredients.replace(/\n/g, '<br>');
+  }
+
+  // Metadata
+  let metaHtml = '';
+  if (product.weight) metaHtml += `<li><strong>Poids :</strong> ${product.weight}</li>`;
+  if (product.brand) metaHtml += `<li><strong>Marque :</strong> ${product.brand}</li>`;
+  if (product.origin) metaHtml += `<li><strong>Origine :</strong> ${product.origin}</li>`;
+  metaHtml += `<li><strong>Catégorie :</strong> ${product.category_name || 'Général'}</li>`;
+  
+  if (metaHtml) {
+    if (document.getElementById('pdMetaList')) document.getElementById('pdMetaList').innerHTML = metaHtml;
+    if (document.getElementById('pdMetaSection')) document.getElementById('pdMetaSection').style.display = 'block';
+  }
+}

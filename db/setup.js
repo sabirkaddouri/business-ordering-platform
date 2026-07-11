@@ -56,9 +56,19 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT UNIQUE NOT NULL,
-      icon TEXT DEFAULT '🍰'
+      slug TEXT UNIQUE,
+      icon TEXT DEFAULT '🍰',
+      description TEXT,
+      display_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migration: Add new columns to categories if they don't exist
+  try { db.run("ALTER TABLE categories ADD COLUMN slug TEXT"); } catch(e) {}
+  try { db.run("ALTER TABLE categories ADD COLUMN description TEXT"); } catch(e) {}
+  try { db.run("ALTER TABLE categories ADD COLUMN display_order INTEGER DEFAULT 0"); } catch(e) {}
+  try { db.run("ALTER TABLE categories ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch(e) {}
 
   db.run(`
     CREATE TABLE IF NOT EXISTS products (
@@ -204,21 +214,36 @@ async function initDatabase() {
     console.log('✅ Default admin created (admin / admin123)');
   }
 
-  // Seed categories if not exists
+  // Seed O Souly categories if table is empty
   const catCount = db.exec('SELECT COUNT(*) as count FROM categories');
   if (catCount[0].values[0][0] === 0) {
     const categories = [
-      ['Moroccan Pastries', '🇲🇦'],
-      ['French Pastries', '🥐'],
-      ['Cakes', '🎂'],
-      ['Bread', '🥖'],
-      ['Drinks', '☕'],
-      ['Seasonal', '🍁']
+      ['Miels & Tartinades',    'miels-tartinades',    '🍯', 'Miels artisanaux et tartinades 100% naturelles', 1],
+      ['Huiles Extra Vierge',   'huiles-extra-vierge', '🫒', "Huiles d'olive extra vierge du Maroc", 2],
+      ['Épices & Aromates',     'epices-aromates',     '🌿', 'Épices et aromates sélectionnés à Marrakech', 3],
+      ['Tisanes',               'tisanes',             '🍵', 'Tisanes et infusions 100% naturelles', 4],
+      ['Cosmétiques',           'cosmetiques',         '🧴', 'Cosmétiques naturels du terroir marocain', 5]
     ];
-    for (const [name, icon] of categories) {
-      db.run('INSERT INTO categories (name, icon) VALUES (?, ?)', [name, icon]);
+    for (const [name, slug, icon, description, display_order] of categories) {
+      db.run(
+        'INSERT INTO categories (name, slug, icon, description, display_order) VALUES (?, ?, ?, ?, ?)',
+        [name, slug, icon, description, display_order]
+      );
     }
-    console.log('✅ Categories seeded');
+    console.log('✅ O Souly categories seeded');
+  } else {
+    // Migration: backfill slugs for existing categories that don't have one
+    const catsWithoutSlug = db.all ? db.all("SELECT id, name FROM categories WHERE slug IS NULL OR slug = ''") : [];
+    if (catsWithoutSlug) {
+      for (const cat of catsWithoutSlug) {
+        const slug = cat.name
+          .toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+        db.run('UPDATE categories SET slug = ? WHERE id = ?', [slug, cat.id]);
+      }
+    }
   }
 
   // Seed products if not exists

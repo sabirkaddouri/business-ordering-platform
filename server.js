@@ -13,6 +13,7 @@ const createSettingsRoutes = require('./routes/api-settings');
 const createAnalyticsRoutes = require('./routes/api-analytics');
 const createPromotionRoutes = require('./routes/api-promotions');
 const createNotificationRoutes = require('./routes/api-notifications');
+const createCategoryRoutes = require('./routes/api-categories');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -51,6 +52,7 @@ async function start() {
   app.use('/api/analytics', createAnalyticsRoutes(db));
   app.use('/api/promotions', createPromotionRoutes(db));
   app.use('/api/notifications', createNotificationRoutes(db));
+  app.use('/api/categories', createCategoryRoutes(db));
 
   // Fallback routes
   app.get('/admin/*', (req, res) => {

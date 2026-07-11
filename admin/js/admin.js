@@ -39,6 +39,7 @@ function setLanguage(lang) {
 
   populateCategorySelect();
   if (allProducts.length) renderProductsTable();
+    if (typeof renderPromoProductCheckboxes === "function") renderPromoProductCheckboxes(); // Init promo products
   if (document.getElementById('dashboard').style.display !== 'none') {
     loadOrders();
     loadRecentOrders();
@@ -143,6 +144,7 @@ function switchPanel(panelName) {
   if (panelName === 'analytics' && typeof loadAnalytics === 'function') loadAnalytics();
   if (panelName === 'promotions' && typeof loadPromotions === 'function') loadPromotions();
   if (panelName === 'citydelivery' && typeof loadCityDelivery === 'function') loadCityDelivery();
+  if (panelName === 'categories' && typeof loadCategoriesPanel === 'function') loadCategoriesPanel();
   
   const dd = document.getElementById('notifDropdown');
   if (dd) dd.style.display = 'none';
@@ -216,7 +218,7 @@ async function loadStats() {
 
 async function loadCategories() {
   try {
-    const res = await fetch(`${API}/api/products/meta/categories`);
+    const res = await fetch(`${API}/api/categories`);
     allCategories = await res.json();
     populateCategorySelect();
   } catch (err) {
@@ -1493,3 +1495,219 @@ window.exportCityCSV = function() {
   document.body.removeChild(a);
 };
 
+// --- Categories Management ---
+async function loadCategoriesPanel() {
+  await loadCategories();
+  renderCategoriesTable();
+}
+
+function renderCategoriesTable() {
+  const tbody = document.getElementById('categoriesBody');
+  if (!allCategories || allCategories.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-light);">Aucune catégorie</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = allCategories.map(cat => {
+    return `<tr>
+      <td>${cat.display_order}</td>
+      <td style="font-size: 24px;">${cat.icon || '📦'}</td>
+      <td><strong>${cat.name}</strong><br><small style="color:var(--text-light);">${cat.slug}</small></td>
+      <td><span class="status-badge" style="background:#f0f4f8;color:var(--text);">${cat.product_count || 0} produits</span></td>
+      <td>
+        <div class="action-buttons">
+          <button class="btn-icon" onclick="editCategory(${cat.id})" title="Modifier">✏️</button>
+          <button class="btn-icon delete" onclick="deleteCategory(${cat.id})" title="Supprimer">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function resetCatForm() {
+  document.getElementById('categoryForm').reset();
+  document.getElementById('catEditId').value = '';
+  document.getElementById('catFormTitle').textContent = 'Nouvelle catégorie';
+  document.getElementById('catCancelBtn').style.display = 'none';
+  document.getElementById('catFormError').style.display = 'none';
+}
+
+function editCategory(id) {
+  const cat = allCategories.find(c => c.id === id);
+  if (!cat) return;
+  
+  document.getElementById('catEditId').value = cat.id;
+  document.getElementById('catName').value = cat.name;
+  document.getElementById('catIcon').value = cat.icon || '';
+  document.getElementById('catDescription').value = cat.description || '';
+  document.getElementById('catOrder').value = cat.display_order || 0;
+  
+  document.getElementById('catFormTitle').textContent = 'Modifier la catégorie';
+  document.getElementById('catCancelBtn').style.display = 'inline-block';
+  document.getElementById('catFormError').style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('categoryForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('catEditId').value;
+  const name = document.getElementById('catName').value;
+  const icon = document.getElementById('catIcon').value;
+  const description = document.getElementById('catDescription').value;
+  const order = document.getElementById('catOrder').value;
+  const errEl = document.getElementById('catFormError');
+  errEl.style.display = 'none';
+
+  const method = id ? 'PUT' : 'POST';
+  const url = id ? `${API}/api/categories/${id}` : `${API}/api/categories`;
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: authHeaders(),
+      body: JSON.stringify({ name, icon, description, order })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+    
+    resetCatForm();
+    await loadCategoriesPanel(); // refresh list
+  } catch(err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+
+
+// --- Custom Category Delete Modal Logic ---
+let pendingDeleteCatId = null;
+
+function showCatToast(message) {
+  const toast = document.getElementById('catToast');
+  if (!toast) return;
+  // Remove existing timeout if any to not stack
+  if (toast.hideTimeout) clearTimeout(toast.hideTimeout);
+  if (toast.removeTimeout) clearTimeout(toast.removeTimeout);
+  
+  toast.textContent = message;
+  toast.classList.remove('hide');
+  toast.classList.add('show');
+  
+  toast.hideTimeout = setTimeout(() => {
+    toast.classList.remove('show');
+    toast.classList.add('hide');
+    toast.removeTimeout = setTimeout(() => {
+      toast.classList.remove('hide');
+    }, 300);
+  }, 3000);
+}
+
+function closeCatDelModal() {
+  const modal = document.getElementById('catDelModal');
+  const overlay = document.getElementById('catDelOverlay');
+  
+  // start close animation
+  modal.classList.remove('show');
+  modal.classList.add('hide');
+  overlay.classList.remove('show');
+  
+  setTimeout(() => {
+    modal.classList.remove('hide'); // reset state completely after transition
+  }, 150);
+  
+  document.body.style.overflow = '';
+  pendingDeleteCatId = null;
+  document.getElementById('catDelError').style.display = 'none';
+  
+  // reset button state just in case
+  const confirmBtn = document.getElementById('catDelConfirmBtn');
+  confirmBtn.disabled = false;
+  confirmBtn.textContent = 'Oui, supprimer';
+}
+
+function deleteCategory(id) {
+  // Step 4: Open modal and populate
+  const cat = allCategories.find(c => c.id === id);
+  if (!cat) return;
+  
+  pendingDeleteCatId = id;
+  const count = cat.product_count || 0;
+  
+  document.getElementById('catDelNameHighlight').textContent = cat.name;
+  
+  const warningBox = document.getElementById('catDelProductsWarning');
+  const confirmBtn = document.getElementById('catDelConfirmBtn');
+  
+  if (count > 0) {
+    warningBox.style.display = 'block';
+    document.getElementById('catDelCount').textContent = count;
+    confirmBtn.disabled = true;
+  } else {
+    warningBox.style.display = 'none';
+    confirmBtn.disabled = false;
+  }
+  
+  confirmBtn.textContent = 'Oui, supprimer';
+  document.getElementById('catDelError').style.display = 'none';
+  
+  // Show modal
+  document.getElementById('catDelOverlay').classList.add('show');
+  document.getElementById('catDelModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+// Step 5: Modal close logic listeners
+document.addEventListener('DOMContentLoaded', () => {
+  const closeBtn = document.getElementById('catDelCloseBtn');
+  const cancelBtn = document.getElementById('catDelCancelBtn');
+  const overlay = document.getElementById('catDelOverlay');
+  const confirmBtn = document.getElementById('catDelConfirmBtn');
+  
+  if (closeBtn) closeBtn.addEventListener('click', closeCatDelModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeCatDelModal);
+  if (overlay) overlay.addEventListener('click', closeCatDelModal);
+  
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('catDelModal')?.classList.contains('show')) {
+      closeCatDelModal();
+    }
+  });
+  
+  // Step 6: Modal confirm logic
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', async () => {
+      if (!pendingDeleteCatId || confirmBtn.disabled) return;
+      
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Suppression...';
+      document.getElementById('catDelError').style.display = 'none';
+      
+      try {
+        const res = await fetch(`${API}/api/categories/${pendingDeleteCatId}`, {
+          method: 'DELETE',
+          headers: authHeaders()
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur lors de la suppression');
+        
+        // Success
+        closeCatDelModal();
+        showCatToast('Catégorie supprimée avec succès');
+        
+        // Remove from DOM without reloading page (or fast reload)
+        // Since loadCategoriesPanel rebuilds the list quickly, we can just call it
+        await loadCategoriesPanel();
+        
+      } catch(err) {
+        // Error
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Oui, supprimer';
+        const errEl = document.getElementById('catDelError');
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+      }
+    });
+  }
+});

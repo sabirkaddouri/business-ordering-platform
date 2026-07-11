@@ -1239,3 +1239,301 @@ hr, .divider {
   outline: 2px solid var(--terracotta);
   outline-offset: 2px;
 }
+
+
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS
+   ========================================================================== */
+
+/* ----------------------------------------
+   LARGE DESKTOP / ULTRAWIDE (2xl: min-width: 1281px)
+   ---------------------------------------- */
+@media (min-width: 1281px) {
+  /* Ultrawide rules */
+  .hero-content, .about-content, .contact-grid { max-width: 1400px; margin: 0 auto; }
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    align-items: stretch;
+  }
+}
+
+/* ----------------------------------------
+   BASE DESKTOP (Styles defined globally above apply here by default)
+   (up to 1280px)
+   ---------------------------------------- */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+.product-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.product-card .card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.product-card .card-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.product-card .card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.product-card .card-footer {
+  margin-top: auto;
+}
+
+/* Navigation - Base Desktop */
+.navbar { height: 72px; }
+.nav-container { height: 72px; }
+.logo-title { font-size: 24px; }
+.nav-link { font-size: 15px; }
+
+/* Desktop Cart Page (Sidebar behaves as cart modal here) */
+.cart-sidebar {
+  width: 400px;
+  max-width: 100%;
+}
+
+/* Desktop Checkout Modal */
+.modal {
+  max-width: 800px;
+  display: grid;
+  grid-template-columns: 60% 40%;
+  gap: 32px;
+}
+.order-form { display: contents; } /* Allows grid to span its children */
+.modal-header { grid-column: 1 / -1; }
+.checkout-notices { grid-column: 1 / -1; }
+.order-summary { grid-column: 2; grid-row: 3 / span 6; position: sticky; top: 20px; }
+
+
+/* Desktop About */
+.about-section .about-content { max-width: 800px; margin: 0 auto; text-align: center; }
+.about-features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; text-align: left; }
+.about-visual { display: none; } /* Simplifying visual as per instructions */
+
+/* Desktop Contact */
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.contact-map-embed { width: 100%; min-height: 400px; height: 100%; border-radius: var(--radius-md); border: 1px solid var(--dark-border); }
+
+/* Desktop Footer */
+.footer-content { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; padding: 64px 0; }
+
+/* Category Pills Base */
+.category-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap; /* for normal desktop */
+}
+.cat-tab { padding: 10px 24px; }
+
+
+/* ----------------------------------------
+   STANDARD LAPTOP (xl: max-width: 1280px)
+   ---------------------------------------- */
+@media (max-width: 1280px) {
+  .products-grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  
+  .navbar { height: 64px; }
+  .nav-container { height: 64px; }
+  .nav-links { gap: 20px !important; }
+  
+  .hero { min-height: 70vh; }
+  
+  .about-section .about-content { max-width: 680px; }
+  
+  .pd-layout .pd-image-col { flex: 0 0 50%; }
+  .pd-layout .pd-info-col { flex: 0 0 50%; }
+  
+  .footer-content { gap: 24px; padding: 48px 0; }
+}
+
+/* ----------------------------------------
+   TABLET LANDSCAPE & PORTRAIT (lg: max-width: 1024px)
+   ---------------------------------------- */
+@media (max-width: 1024px) {
+  /* Navigation */
+  .nav-links {
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: var(--cream);
+    flex-direction: column;
+    gap: 0 !important;
+    padding: 0 !important;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    transform: translateY(-150%);
+    transition: transform 0.4s ease-in-out;
+    margin: 0 !important;
+  }
+  .nav-links.active {
+    transform: translateY(0);
+  }
+  .nav-link {
+    display: block;
+    padding: 16px;
+    height: 52px;
+    text-align: left;
+    border-bottom: 1px solid var(--dark-border);
+    border-left: 4px solid transparent;
+  }
+  .nav-link.active { border-left-color: var(--terracotta); }
+  
+  .mobile-menu-btn { display: flex !important; }
+  
+  .hero-content { width: 100%; max-width: 100%; text-align: left; }
+  
+  /* Category Pills */
+  .category-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .category-tabs::-webkit-scrollbar { display: none; }
+  .cat-tab { padding: 8px 18px; white-space: nowrap; }
+
+  /* Product Detail */
+  .pd-layout { flex-direction: column; gap: 32px; }
+  .pd-image-col { position: static; max-width: 100%; }
+  .pd-image-col img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+  #relatedProductsGrid { grid-template-columns: repeat(3, 1fr); }
+  
+  /* Checkout */
+  .modal { display: flex; flex-direction: column; }
+  .order-summary { position: static; order: 3; }
+  
+  /* About */
+  .about-features { grid-template-columns: repeat(2, 1fr); }
+  
+  /* Contact */
+  .contact-map-embed { min-height: 300px; }
+  
+  /* Footer */
+  .footer-content { grid-template-columns: repeat(2, 1fr); }
+  .footer-brand { grid-column: 1 / -1; }
+}
+
+/* ----------------------------------------
+   TABLET PORTRAIT / LARGE PHONE (md: max-width: 768px)
+   ---------------------------------------- */
+@media (max-width: 768px) {
+  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  
+  .navbar { height: 56px; }
+  .nav-container { height: 56px; }
+  .logo-title { font-size: 18px; }
+  .nav-links { top: 56px; }
+  
+  .hero { min-height: auto; padding: 48px 0; text-align: center; }
+  .hero-actions { justify-content: center; }
+  
+  #relatedProductsGrid { grid-template-columns: repeat(2, 1fr); }
+  
+  .contact-grid { display: flex; flex-direction: column; }
+  
+  .footer-content { display: flex; flex-direction: column; text-align: center; }
+  .footer-links { display: flex; flex-direction: column; gap: 12px; }
+  .footer-links a { min-height: 48px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--sand); }
+  .footer { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+}
+
+/* ----------------------------------------
+   STANDARD PHONE (sm: max-width: 600px)
+   ---------------------------------------- */
+@media (max-width: 600px) {
+  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  
+  .category-tabs { scroll-snap-type: x mandatory; }
+  .cat-tab { scroll-snap-align: start; min-height: 40px; padding: 8px 16px; }
+  .cat-tab:first-child { margin-left: clamp(16px, 4vw, 48px); }
+  
+  .hero-stats { flex-direction: column; gap: 16px; }
+  .hero-actions { flex-direction: column; width: 100%; }
+  .hero-actions .btn { width: 100%; height: 56px; margin: 0 !important; }
+  
+
+  .pd-image-col img { aspect-ratio: 4/3; }
+  
+  /* Checkout Form */
+  .form-row { flex-direction: column; gap: 0; }
+  input, select, textarea { width: 100%; height: 48px; }
+  button[type="submit"] { height: 56px; }
+  
+  .contact-map-embed { min-height: 250px; }
+}
+
+/* ----------------------------------------
+   SMALL PHONE (xs: max-width: 400px)
+   ---------------------------------------- */
+@media (max-width: 400px) {
+  .products-grid { grid-template-columns: 1fr; gap: 12px; }
+  #relatedProductsGrid { grid-template-columns: 1fr; }
+  .about-features { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  /* Cart sidebar mobile layout */
+  .cart-item { flex-direction: column; text-align: center; }
+  .cart-item-image { width: 100%; height: 120px; aspect-ratio: unset; margin-bottom: 16px; }
+  .cart-item-image img { width: 100%; height: 100%; object-fit: contain; }
+  .cart-qty { justify-content: center; margin: 16px 0; }
+  .qty-btn { width: 44px; height: 44px; font-size: 20px; }
+  .cart-item-remove { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+  
+  /* Cart footer checkout button sticky */
+  #cartFooter { padding-bottom: 80px; }
+  #checkoutBtn { 
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    width: 100%; 
+    height: 56px; 
+    border-radius: 0; 
+    z-index: 1000; 
+  }
+
+  /* Order Modal Mobile Layout */
+  #orderForm button[type='submit'] {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 56px;
+    border-radius: 0;
+    z-index: 1000;
+  }
+  .modal { padding-bottom: 80px; } /* Space for sticky button */
+  
+  /* Payment methods (not explicitly in HTML but just in case) */
+  .payment-card { width: 100%; height: 64px; }
+}
+/* Fix for Add to Cart button disappearing on resize */
+#pdAddBtn {
+  display: flex !important;
+  width: 100% !important;
+  justify-content: center;
+  align-items: center;
+  visibility: visible !important;
+}

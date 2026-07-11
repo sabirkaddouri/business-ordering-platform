@@ -53,10 +53,10 @@ const upload = multer({
 function createProductRoutes(db) {
   const router = express.Router();
 
-  // GET /api/products/meta/categories — list all categories (public)
+  // GET /api/products/meta/categories — list all categories ordered by display_order (public, legacy endpoint)
   router.get('/meta/categories', (req, res) => {
     try {
-      const categories = db.all('SELECT * FROM categories ORDER BY name');
+      const categories = db.all('SELECT * FROM categories ORDER BY display_order ASC, name ASC');
       res.json(categories);
     } catch (err) {
       console.error(err);
@@ -67,16 +67,27 @@ function createProductRoutes(db) {
   // GET /api/products — list all (public)
   router.get('/', (req, res) => {
     try {
-      const { category, featured, available } = req.query;
+      const { category, categoryId, categorySlug, featured, available } = req.query;
       let sql = `SELECT p.*, c.name as category_name, c.icon as category_icon 
                  FROM products p 
                  LEFT JOIN categories c ON p.category_id = c.id`;
       const conditions = [];
       const params = [];
 
+      // Legacy category filter by name
       if (category) {
         conditions.push('c.name = ?');
         params.push(category);
+      }
+      // New: filter by category ID
+      if (categoryId) {
+        conditions.push('p.category_id = ?');
+        params.push(parseInt(categoryId));
+      }
+      // New: filter by category slug
+      if (categorySlug) {
+        conditions.push('c.slug = ?');
+        params.push(categorySlug);
       }
       if (featured !== undefined) {
         conditions.push('p.featured = ?');
