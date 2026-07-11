@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Découvrez les produits artisanaux marocains de O Souly — miels, huiles d'olive, épices, tisanes et cosmétiques 100% naturels, livrés partout au Maroc.">
+  <title>O Souly — Produits du terroir marocain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { font-family: 'Cairo', sans-serif; }
+    
+    /* Force modern shop layout with logo on left and buttons on right */
+    .nav-container { 
+      direction: ltr !important; 
+    }
+    
+    /* Force nav logo to flow left-to-right */
+    .nav-logo {
+      direction: ltr !important;
+      text-align: left;
+    }
+    
+    /* Handle nav links placement and flow */
+    .nav-links {
+      direction: ltr !important;
+      margin-left: 48px !important;
+      margin-right: auto !important;
+      gap: 32px !important;
+      padding: 0 !important;
+    }
+    
+    .nav-link {
+      text-align: center;
+    }
+    
+    /* Right actions styling */
+    .lang-switcher { 
+      padding: 4px 12px; 
+      border-radius: 20px; 
+      font-weight: 600; 
+      font-size: 13px; 
+      border: 1px solid var(--dark-border); 
+      background: var(--bg); 
+      color: var(--text); 
+      cursor: pointer; 
+      transition: 0.3s;
+      margin-left: 16px;
+      margin-right: 0;
+      direction: ltr !important;
+    }
+    
+    .cart-btn {
+      margin-left: 16px !important;
+      margin-right: 0 !important;
+    }
+
+    html[dir="rtl"] .hero-actions .btn { margin-left: 16px; margin-right: 0; }
+    html[dir="rtl"] .about-feature { display: flex; text-align: right; }
+    html[dir="rtl"] .about-feature .feature-icon { margin-left: 16px; margin-right: 0; }
+    html[dir="rtl"] .contact-card, html[dir="rtl"] .about-card, html[dir="rtl"] .stat { text-align: center; }
+    
+    @media (max-width: 768px) {
+      .nav-links { 
+        right: 0; 
+        left: 0; 
+        transform: translateY(-100%); 
+        transition: var(--transition); 
+      }
+      html[dir="rtl"] .nav-links.active {
+        direction: rtl !important;
+        text-align: right;
+      }
+      html[dir="ltr"] .nav-links.active,
+      html[lang="fr"] .nav-links.active {
+        direction: ltr !important;
+        text-align: left;
+      }
+      .nav-links.active { 
+        transform: translateY(0); 
+        margin-left: 0 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container" style="align-items: center;">
+      <a href="/" class="nav-logo">
+        <span class="logo-icon">🌿</span>
+        <div class="logo-wrapper">
+          <span class="logo-title">O Souly</span>
+          <span class="logo-subtitle">des produits du terroir marocain</span>
+        </div>
+      </a>
+      <div class="nav-links">
+        <a href="#home" class="nav-link" data-i18n="nav.home">Accueil</a>
+        <a href="#products" class="nav-link" data-i18n="nav.menu">Boutique</a>
+        <a href="#about" class="nav-link" data-i18n="nav.about">À Propos</a>
+        <a href="#contact" class="nav-link" data-i18n="nav.contact">Contact</a>
+      </div>
+      <div style="flex:1"></div>
+      <select id="langSwitcher" class="lang-switcher">
+        <option value="fr">FR</option>
+        <option value="en">EN</option>
+        <option value="ar">AR</option>
+      </select>
+      <button class="cart-btn" id="cartToggle" aria-label="Mon Panier" style="margin-inline-start: 16px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
+        <span class="cart-count" id="cartCount">0</span>
+      </button>
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu" style="margin-inline-start: 16px;">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <span class="hero-badge" data-i18n="hero.badge">🌿 Produits du terroir marocain</span>
+      <h1 class="hero-title"><span data-i18n="hero.title1">La nature du Maroc,</span><br><span class="hero-highlight" data-i18n="hero.title2">livrée chez vous</span></h1>
+      <p class="hero-subtitle" data-i18n="hero.subtitle">Épices, miels, huiles &amp; soins 100% naturels — sélectionnés à Marrakech avec amour.</p>
+      <div class="hero-actions">
+        <a href="#products" class="btn btn-primary" data-i18n="hero.btnPrimary">Découvrir la boutique</a>
+        <a href="#about" class="btn btn-outline" data-i18n="hero.btnSecondary">Notre Histoire</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span class="stat-number">100%</span><span class="stat-label" data-i18n="hero.s1">Naturel</span></div>
+        <div class="stat"><span class="stat-number">🤝</span><span class="stat-label" data-i18n="hero.s2">Artisanal marocain</span></div>
+        <div class="stat"><span class="stat-number">📦</span><span class="stat-label" data-i18n="hero.s3">Livraison partout au Maroc</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Section -->
+  <section class="featured-section" id="featured">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge" data-i18n="featured.badge">⭐ Coups de cœur</span>
+        <h2 class="section-title" data-i18n="featured.title">Produits vedettes</h2>
+        <p class="section-subtitle" data-i18n="featured.subtitle">Nos produits les plus appréciés, sélectionnés pour vous</p>
+      </div>
+      <div class="featured-grid" id="featuredGrid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Products Section -->
+  <section class="products-section" id="products">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge" data-i18n="menu.badge">🛒 Notre boutique</span>
+        <h2 class="section-title" data-i18n="menu.title">Tous nos produits</h2>
+        <p class="section-subtitle" data-i18n="menu.subtitle">Découvrez notre sélection de produits du terroir marocain 100% naturels</p>
+      </div>
+      <div class="category-tabs" id="categoryTabs">
+        <!-- Populated by JS -->
+      </div>
+      <div class="products-grid" id="productsGrid">
+        <!-- Populated by JS -->
+      </div>
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <span class="empty-icon">🔍</span>
+        <h3 data-i18n="empty.title">Aucun produit trouvé</h3>
+        <p data-i18n="empty.subtitle">Essayez une autre catégorie</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section class="about-section" id="about">
+    <div class="container">
+      <div class="about-grid">
+        <div class="about-content">
+          <span class="section-badge" data-i18n="about.badge">🏠 Notre Histoire</span>
+          <h2 class="section-title" data-i18n="about.title">Notre Histoire</h2>
+          <p data-i18n="about.desc">O Souly est née d'un amour profond pour les produits du terroir marocain. Chaque produit est sélectionné avec soin — 100% naturel, sans additifs, fabriqué selon un savoir-faire artisanal transmis de génération en génération. Notre mission est simple : vous apporter la nature du Maroc, directement chez vous.</p>
+          <div class="about-features">
+            <div class="about-feature">
+              <span class="feature-icon">🌿</span>
+              <div>
+                <h4 data-i18n="about.f1">Naturel</h4>
+                <p data-i18n="about.f1desc">Aucun additif, aucun colorant. La nature telle qu'elle est.</p>
+              </div>
+            </div>
+            <div class="about-feature">
+              <span class="feature-icon">📍</span>
+              <div>
+                <h4 data-i18n="about.f2">Local</h4>
+                <p data-i18n="about.f2desc">Produits du terroir marocain, sélectionnés à Marrakech.</p>
+              </div>
+            </div>
+            <div class="about-feature">
+              <span class="feature-icon">🤲</span>
+              <div>
+                <h4 data-i18n="about.f3">Artisanal</h4>
+                <p data-i18n="about.f3desc">Fabriqué selon des méthodes ancestrales transmises de génération en génération.</p>
+              </div>
+            </div>
+            <div class="about-feature">
+              <span class="feature-icon">📦</span>
+              <div>
+                <h4 data-i18n="about.f4">Livré avec soin</h4>
+                <p data-i18n="about.f4desc">Emballé avec attention pour arriver en parfait état chez vous.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="about-visual">
+          <div class="about-card">
+            <span class="about-emoji">🌿</span>
+            <h3 data-i18n="about.boxTitle">Du terroir à votre table</h3>
+            <p data-i18n="about.boxDesc">Chaque produit est sélectionné avec soin à Marrakech</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="contact-section" id="contact">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-badge" data-i18n="contact.badge">📞 Contactez-nous</span>
+        <h2 class="section-title" data-i18n="contact.title">Contactez-nous</h2>
+        <p class="section-subtitle" data-i18n="contact.intro">Vous avez une question sur un produit, une commande ou une livraison ? Nous sommes là pour vous aider.</p>
+      </div>
+      <div class="contact-grid">
+        <div class="contact-card">
+          <span class="contact-icon">📱</span>
+          <h3 data-i18n="contact.c1Title">Téléphone</h3>
+          <p data-i18n="contact.c1Desc">+212 6 61 26 95 36</p>
+        </div>
+        <div class="contact-card">
+          <span class="contact-icon">📍</span>
+          <h3 data-i18n="contact.c2Title">Adresse</h3>
+          <p data-i18n="contact.c2Desc">Rue Lieutenant Lamure, Résidence Palmera,<br>Gueliz, Marrakech, Maroc</p>
+        </div>
+        <div class="contact-card">
+          <span class="contact-icon">📸</span>
+          <h3 data-i18n="contact.c3Title">Instagram</h3>
+          <p data-i18n="contact.c3Desc">@osoulymarrakech</p>
+        </div>
+        <div class="contact-card">
+          <span class="contact-icon">🕒</span>
+          <h3 data-i18n="contact.hoursTitle">Horaires</h3>
+          <p id="contactHours" data-i18n="contact.hoursDesc">Lundi – Samedi: 9h00 – 20h00 / Dimanche: 10h00 – 18h00</p>
+        </div>
+        <div class="contact-card">
+          <span class="contact-icon">💬</span>
+          <h3 data-i18n="contact.c4Title">WhatsApp</h3>
+          <p><a href="https://wa.me/212661269536" style="color:inherit;text-decoration:none;" data-i18n="contact.c4Desc">Écrire sur WhatsApp</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <span class="logo-icon">🌿</span>
+          <div class="logo-wrapper">
+            <span class="logo-title">O Souly</span>
+            <span class="logo-subtitle">des produits du terroir marocain</span>
+          </div>
+          <p data-i18n="footer.desc" style="margin-top: 8px;">📸 @osoulymarrakech &nbsp;|&nbsp; 📞 +212 6 61 26 95 36<br>📍 Rue Lieutenant Lamure, Gueliz, Marrakech</p>
+        </div>
+        <div class="footer-links">
+          <a href="#home" data-i18n="nav.home">Accueil</a>
+          <a href="#products" data-i18n="nav.menu">Boutique</a>
+          <a href="#about" data-i18n="nav.about">À Propos</a>
+          <a href="#contact" data-i18n="nav.contact">Contact</a>
+          <a href="/admin" data-i18n="nav.admin">Admin</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p data-i18n="footer.copy">&copy; 2025 O Souly — Tous droits réservés</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cart Sidebar -->
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <aside class="cart-sidebar" id="cartSidebar">
+    <div class="cart-header">
+      <h2 data-i18n="cart.title">🛒 Mon Panier</h2>
+      <button class="cart-close" id="cartClose">&times;</button>
+    </div>
+    <div class="checkout-badge-cod" style="background: rgba(229, 62, 62, 0.1); color: #e53e3e; padding: 10px 16px; font-weight: 600; text-align: center; border-bottom: 1px solid rgba(229, 62, 62, 0.2); font-size: 14px;" data-i18n="checkout.codNotice">
+      Paiement à la livraison — Marrakech uniquement
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div class="cart-empty" id="cartEmpty">
+        <span>🛒</span>
+        <p data-i18n="cart.empty">Votre panier est vide. Découvrez nos produits naturels.</p>
+      </div>
+    </div>
+    <div class="cart-footer" id="cartFooter" style="display:none;">
+      <div class="cart-total">
+        <span data-i18n="cart.total">Sous-total :</span>
+        <span id="cartTotal">0.00 MAD</span>
+      </div>
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;" data-i18n="cart.shipping">Livraison gratuite à Marrakech — livraison nationale disponible</p>
+      <button class="btn btn-primary btn-full" id="checkoutBtn" data-i18n="cart.btn">Passer la commande</button>
+    </div>
+  </aside>
+
+  <!-- Order Modal -->
+  <div class="modal-overlay" id="orderModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 data-i18n="checkout.title">📝 Finaliser ma commande</h2>
+        <button class="modal-close" id="orderModalClose">&times;</button>
+      </div>
+      <form class="order-form" id="orderForm">
+        <div class="checkout-notices" style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+          <div class="checkout-badge-cod" style="background: rgba(229, 62, 62, 0.1); color: #e53e3e; padding: 10px 16px; font-weight: 600; text-align: center; border-radius: 8px; font-size: 14px; border: 1px solid rgba(229, 62, 62, 0.2);" data-i18n="checkout.codNotice">
+            Paiement à la livraison — Marrakech uniquement
+          </div>
+          <div class="checkout-badge-zone" style="background: rgba(49, 151, 149, 0.1); color: #319795; padding: 10px 16px; font-weight: 600; text-align: center; border-radius: 8px; font-size: 14px; border: 1px solid rgba(49, 151, 149, 0.2);" data-i18n="checkout.zoneNotice">
+            Prépayé — virement bancaire — Livraison nationale
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="customerName" data-i18n="checkout.name">Nom complet *</label>
+          <input type="text" id="customerName" name="customer_name" required placeholder="Votre nom complet">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="customerPhone" data-i18n="checkout.phone">Téléphone *</label>
+            <input type="tel" id="customerPhone" name="customer_phone" required placeholder="0600000000">
+          </div>
+          <div class="form-group">
+            <label for="citySearchInput" data-i18n="checkout.city">Ville *</label>
+            <div style="position: relative;" id="cityDropdownContainer">
+              <input type="text" id="citySearchInput" placeholder="Rechercher une ville..." autocomplete="off">
+              <input type="hidden" id="customerCity" name="customer_city" required>
+              <ul id="cityDropdownList" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:200px; overflow-y:auto; background:var(--cream); border:1.5px solid var(--sand); border-radius:10px; z-index:1000; list-style:none; padding:0; margin:4px 0 0 0; box-shadow:0 4px 12px rgba(0,0,0,0.1);"></ul>
+            </div>
+            <input type="text" id="customerCityOther" placeholder="Précisez votre ville" style="display:none; margin-top:8px;">
+          </div>
+
+        </div> <!-- /form-row -->
+        <div class="form-group">
+          <label for="customerEmail" data-i18n="checkout.email">Gmail / Email (Optionnel)</label>
+          <input type="email" id="customerEmail" name="customer_email" placeholder="example@gmail.com">
+        </div>
+        <div class="form-group">
+          <label for="customerAddress" data-i18n="checkout.address">Adresse complète *</label>
+          <textarea id="customerAddress" name="customer_address" required placeholder="Votre adresse complète"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="orderNotes" data-i18n="checkout.notes">Notes de commande (optionnel)</label>
+          <textarea id="orderNotes" name="notes" placeholder="Informations supplémentaires..."></textarea>
+        </div>
+        <div class="form-group" id="otpGroup" style="display: none;">
+          <label for="otpCode" data-i18n="checkout.otp">Code de vérification *</label>
+          <input type="text" id="otpCode" name="otp" placeholder="123456" maxlength="6">
+        </div>
+        <div id="promoSection" style="display:none;">
+          <div class="form-group" style="display: flex; gap: 8px;">
+            <input type="text" id="promoCodeInput" data-i18n="js.promoPh" placeholder="Code promo (optionnel)" style="text-transform:uppercase; flex: 1;">
+            <button type="button" class="btn" id="applyPromoBtn" data-i18n="js.promoApply" style="white-space: nowrap; background: var(--sand); color: var(--brown); border: 1px solid var(--sand-dark);">Appliquer</button>
+          </div>
+        </div>
+        <div class="order-summary" id="orderSummary"></div>
+        <button type="submit" class="btn btn-primary btn-full" data-i18n="checkout.btn">Confirmer ma commande</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="successModal">
+    <div class="modal modal-success">
+      <div class="success-content">
+        <span class="success-icon">🎉</span>
+        <h2 data-i18n="success.title">Merci pour votre commande !</h2>
+        <p data-i18n="success.p1">Un membre de l'équipe O Souly vous contactera bientôt pour confirmer.</p>
+        <p class="order-id-display" id="orderIdDisplay"></p>
+        <button class="btn btn-primary" id="successClose" data-i18n="success.btn">Continuer mes achats</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="/js/i18n.js"></script>
+  <script src="/js/cities.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

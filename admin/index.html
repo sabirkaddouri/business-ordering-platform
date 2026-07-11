@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>O Souly – Produits du terroir marocain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/css/admin.css">
+  <style>
+    /* Toggle switch styles */
+    .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 22px; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: #319795; }
+    input:checked + .slider:before { transform: translateX(18px); }
+    
+    /* Multi-select styling */
+    .multi-select-container { position: relative; }
+    .multi-select-dropdown { position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--bg-input); border: 1px solid var(--dark-border); border-radius: 8px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; }
+    .multi-select-dropdown.active { display: block; }
+    .multi-select-option { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--dark-border); }
+    .multi-select-option:hover { background: rgba(139,90,43,0.1); }
+    .tag { display: inline-flex; align-items: center; background: rgba(139,90,43,0.1); color: var(--brown); padding: 4px 8px; border-radius: 4px; font-size: 12px; margin: 4px 4px 0 0; }
+    .tag-remove { margin-left: 6px; cursor: pointer; font-weight: bold; }
+
+    body { font-family: 'Cairo', sans-serif; }
+    html[dir="rtl"] .sidebar { border-left: 1px solid var(--dark-border); border-right: none; right: 0; left: auto; }
+    html[dir="ltr"] .sidebar { left: 0; border-right: 1px solid var(--dark-border); border-left: none; }
+    html[dir="rtl"] .main-content { margin-right: 260px; margin-left: 0; }
+    html[dir="ltr"] .main-content { margin-left: 260px; margin-right: 0; }
+    html[dir="rtl"] .select-input, html[dir="rtl"] .form-group input, html[dir="rtl"] .form-group textarea { background-position: left 12px center; padding-left: 36px; padding-right: 16px; }
+    html[dir="rtl"] .modal-close { margin-right: auto; margin-left: 0; }
+    html[dir="ltr"] .modal-close { margin-left: auto; margin-right: 0; }
+    html[dir="rtl"] .stat-card { display: flex; align-items: center; }
+    html[dir="rtl"] .stat-icon { margin-left: 16px; margin-right: 0; }
+    html[dir="rtl"] .nav-item { text-align: right; }
+    html[dir="ltr"] .nav-item { text-align: left; }
+    html[dir="rtl"] .data-table th, html[dir="rtl"] .data-table td { text-align: right; }
+    html[dir="ltr"] .data-table th, html[dir="ltr"] .data-table td { text-align: left; }
+    html[dir="rtl"] .toast.success { border-right: 4px solid var(--success); border-left: none; }
+    html[dir="rtl"] .toast.error { border-right: 4px solid var(--danger); border-left: none; }
+    .lang-switcher { padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 13px; border: 1px solid var(--dark-border); background: var(--bg); color: var(--text); cursor: pointer; margin-inline-end: 16px;}
+    
+    @media (max-width: 768px) {
+      .main-content { margin-right: 0 !important; margin-left: 0 !important; }
+      html[dir="rtl"] .sidebar { right: -260px; left: auto; }
+      html[dir="ltr"] .sidebar { left: -260px; right: auto; }
+      html[dir="rtl"] .sidebar.active { right: 0; }
+      html[dir="ltr"] .sidebar.active { left: 0; }
+      html[dir="rtl"] .sidebar-toggle { margin-left: 16px; margin-right: 0; }
+      html[dir="ltr"] .sidebar-toggle { margin-right: 16px; margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div style="display:flex; justify-content:flex-end; margin-bottom: 8px;">
+        <select id="langSwitcherLogin" class="lang-switcher">
+          <option value="fr">FR</option>
+          <option value="en">EN</option>
+          <option value="ar">AR</option>
+        </select>
+      </div>
+      <div class="login-brand">
+        <span class="login-icon">🌿</span>
+        <h1>O Souly</h1>
+        <p data-i18n="login.title">لوحة تحكم الإدارة</p>
+      </div>
+      <form class="login-form" id="loginForm">
+        <div class="form-group">
+          <label data-i18n="login.user">اسم المستخدم</label>
+          <input type="text" id="loginUsername" required placeholder="admin" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label data-i18n="login.pass">كلمة المرور</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <div class="login-error" id="loginError"></div>
+        <button type="submit" class="btn btn-primary btn-full" data-i18n="login.btn">تسجيل الدخول</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="dashboard" id="dashboard" style="display:none;">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-logo">🌿</span>
+        <span class="sidebar-title">O Souly</span>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-panel="overview" id="navOverview">
+          <span class="nav-icon">📊</span> <span data-i18n="sidebar.overview">نظرة عامة</span>
+        </button>
+        <button class="nav-item" data-panel="analytics" id="navAnalytics">
+          <span class="nav-icon">📈</span> <span data-i18n="sidebar.analytics">Analytiques</span>
+        </button>
+        <button class="nav-item" data-panel="products" id="navProducts">
+          <span class="nav-icon">🧁</span> <span data-i18n="sidebar.products">المنتجات</span>
+        </button>
+        <button class="nav-item" data-panel="promotions" id="navPromotions">
+          <span class="nav-icon">🏷️</span> <span data-i18n="sidebar.promotions">Promotions</span>
+        </button>
+        <button class="nav-item" data-panel="orders" id="navOrders">
+          <span class="nav-icon">📦</span> <span data-i18n="sidebar.orders">الطلبات</span>
+        </button>
+        <button class="nav-item" data-panel="citydelivery" id="navCitydelivery">
+          <span class="nav-icon">📍</span> <span>Livraisons par ville</span>
+        </button>
+        <button class="nav-item" data-panel="settings" id="navSettings">
+          <span class="nav-icon">⚙️</span> <span data-i18n="sidebar.settings">الإعدادات</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="nav-item logout-btn" id="logoutBtn">
+          <span class="nav-icon">🚪</span> <span data-i18n="sidebar.logout">تسجيل الخروج</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <h2 class="page-title" id="pageTitle" data-i18n="topbar.title">نظرة عامة</h2>
+        <div class="topbar-right" style="display:flex; align-items:center; margin-inline-start: auto;">
+          <select id="langSwitcherDash" class="lang-switcher">
+            <option value="fr">FR</option>
+            <option value="en">EN</option>
+            <option value="ar">AR</option>
+          </select>
+          <!-- Notification Bell -->
+          <div id="notifBellWrapper" style="position:relative; margin-inline-end:12px; cursor:pointer;" onclick="toggleNotifDropdown()">
+            <span style="font-size:22px;">🔔</span>
+            <span id="notifBadge" style="display:none; position:absolute; top:-5px; inset-inline-end:-6px; background:#e53e3e; color:#fff; border-radius:50%; width:18px; height:18px; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;">0</span>
+          </div>
+          <div id="notifDropdown" style="display:none; position:absolute; top:56px; inset-inline-end:16px; width:340px; background:var(--bg-card); border:1px solid var(--dark-border); border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.18); z-index:9999; max-height:440px; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--dark-border);">
+              <strong style="font-size:14px;">Notifications</strong>
+              <button onclick="markAllNotifsRead()" style="font-size:12px; background:none; border:none; color:var(--brown); cursor:pointer; font-weight:600;">Tout marquer comme lu</button>
+            </div>
+            <div id="notifList"><p style="padding:16px; color:var(--text-light); font-size:13px;">Aucune notification.</p></div>
+          </div>
+          <span class="admin-name" id="adminName">المدير</span>
+        </div>
+      </header>
+
+      <!-- Overview Panel -->
+      <div class="panel active" id="panelOverview">
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card">
+            <div class="stat-icon stat-blue">📦</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statTotalOrders">0</span>
+              <span class="stat-label" data-i18n="stats.orders">إجمالي الطلبات</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-orange">⏳</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statPending">0</span>
+              <span class="stat-label" data-i18n="stats.pending">قيد الانتظار</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-green">💰</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statRevenue">0 MAD</span>
+              <span class="stat-label" data-i18n="stats.rev">الإيرادات</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-purple">🧁</div>
+            <div class="stat-info">
+              <span class="stat-value" id="statProducts">0</span>
+              <span class="stat-label" data-i18n="stats.products">المنتجات</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3 data-i18n="recent.title">أحدث الطلبات</h3>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table" id="recentOrdersTable">
+              <thead>
+                <tr>
+                  <th data-i18n="recent.id">الرقم</th>
+                  <th data-i18n="recent.cust">العميل</th>
+                  <th data-i18n="recent.items">العناصر</th>
+                  <th data-i18n="recent.total">المجموع</th>
+                  <th data-i18n="recent.status">الحالة</th>
+                  <th data-i18n="recent.date">التاريخ</th>
+                </tr>
+              </thead>
+              <tbody id="recentOrdersBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics Panel -->
+      <div class="panel" id="panelAnalytics">
+        <div class="stats-grid" id="analyticsStatsGrid">
+          <div class="stat-card">
+            <div class="stat-icon stat-green">💰</div>
+            <div class="stat-info">
+              <span class="stat-value" id="anaTotalRev">0 MAD</span>
+              <span class="stat-label" data-i18n="analytics.totalRev">Total des revenus</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-blue">📅</div>
+            <div class="stat-info">
+              <span class="stat-value" id="anaMonthRev">0 MAD</span>
+              <span class="stat-label" data-i18n="analytics.monthRev">Revenus ce mois</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-orange">📆</div>
+            <div class="stat-info">
+              <span class="stat-value" id="anaWeekRev">0 MAD</span>
+              <span class="stat-label" data-i18n="analytics.weekRev">Revenus cette semaine</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-purple">🧾</div>
+            <div class="stat-info">
+              <span class="stat-value" id="anaAvgOrder">0 MAD</span>
+              <span class="stat-label" data-i18n="analytics.avgOrder">Valeur moyenne commande</span>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:24px;">
+          <div class="card-header"><h3 data-i18n="analytics.chartTitle">Commandes par jour (30 derniers jours)</h3></div>
+          <div style="padding:16px 16px 8px;">
+            <canvas id="ordersChart" height="100"></canvas>
+          </div>
+        </div>
+        <div class="card" style="margin-top:24px;">
+          <div class="card-header"><h3 data-i18n="analytics.topProducts">Produits les plus commandés</h3></div>
+          <div class="table-wrap">
+            <table class="data-table" id="topProductsTable">
+              <thead><tr><th data-i18n="analytics.colProduct">Produit</th><th data-i18n="analytics.colOrders">Commandes</th><th data-i18n="analytics.colRevenue">Revenus générés</th></tr></thead>
+              <tbody id="topProductsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Products Panel -->
+      <div class="panel" id="panelProducts">
+        <div class="panel-header">
+          <h3 data-i18n="prodPanel.title">المنتجات</h3>
+          <button class="btn btn-primary" id="addProductBtn" data-i18n="prodPanel.add">+ إضافة منتج</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table" id="productsTable">
+              <thead>
+                <tr>
+                  <th data-i18n="prodPanel.img">الصورة</th>
+                  <th data-i18n="prodPanel.name">الاسم</th>
+                  <th data-i18n="prodPanel.cat">الفئة</th>
+                  <th data-i18n="prodPanel.price">السعر</th>
+                  <th data-i18n="prodPanel.feat">مميز</th>
+                  <th data-i18n="prodPanel.avail">متاح</th>
+                  <th>Stock</th>
+                  <th data-i18n="prodPanel.act">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="productsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- Promotions Panel -->
+      <div class="panel" id="panelPromotions">
+        <div class="panel-header">
+          <h3 data-i18n="promotions.title">Promotions &amp; Codes promo</h3>
+        </div>
+        <div class="card" style="margin-bottom:24px;">
+          <div class="card-header"><h3 data-i18n="promotions.newCode">Nouveau code promo</h3></div>
+          <form id="promoForm" style="padding:16px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--dark-border);">
+              <label style="margin: 0;">Code actif</label>
+              <label class="switch">
+                <input type="checkbox" id="promoActive" checked>
+                <span class="slider"></span>
+              </label>
+              <small style="color:var(--text-light); font-size: 11px;">Désactivez ce toggle pour suspendre ce code sans le supprimer. Les clients qui l'entrent verront un message d'erreur.</small>
+            </div>
+            <div class="form-group">
+              <label data-i18n="promotions.codeLbl">Code *</label>
+              <input type="text" id="promoCode" placeholder="Ex: BIENVENUE10" style="text-transform:uppercase;" required>
+            </div>
+            <div class="form-group">
+              <label data-i18n="promotions.typeLbl">Type *</label>
+              <select id="promoType" class="select-input">
+                <option value="percentage" data-i18n="promotions.typePct">Pourcentage (%)</option>
+                <option value="fixed" data-i18n="promotions.typeFix">Montant fixe (MAD)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label data-i18n="promotions.valLbl">Valeur *</label>
+              <input type="text" inputmode="decimal" id="promoValue" placeholder="Ex: 10" required>
+            </div>
+            <div class="form-group">
+              <label data-i18n="promotions.minLbl">Minimum commande (MAD)</label>
+              <input type="text" inputmode="decimal" id="promoMinOrder" placeholder="Ex: 100">
+            </div>
+            <div class="form-group">
+              <label data-i18n="promotions.expLbl">Date d'expiration</label>
+              <input type="date" id="promoExpiry">
+            </div>
+            
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label>Ce code s'applique Ã </label>
+              <div style="display: flex; gap: 16px; margin-top: 4px;">
+                <label style="font-weight: normal; font-size: 13px;"><input type="radio" name="promoScope" value="all" checked> Tous les produits</label>
+                <label style="font-weight: normal; font-size: 13px;"><input type="radio" name="promoScope" value="specific_products"> Produits spécifiques</label>
+              </div>
+              <small style="color:var(--text-light); font-size: 11px; display: block; margin-top: 4px;">Si vous choisissez produits spécifiques, le code ne fonctionnera que si la commande contient au moins un des produits sélectionnés.</small>
+            </div>
+
+            <div class="form-group" id="promoProductsGroup" style="grid-column: 1 / -1; display: none;">
+              <label>Produits concernés</label>
+              <div id="promoProductCheckboxList" style="max-height: 220px; overflow-y: auto; border: 1.5px solid var(--dark-border); border-radius: 8px; padding: 8px 12px; background: var(--bg-input); display: flex; flex-direction: column; gap: 6px;">
+                <span style="color: var(--text-light); font-size: 13px;">Chargement des produits...</span>
+              </div>
+              <small style="color:var(--text-light); font-size: 11px; display: block; margin-top: 6px;">La commande doit contenir au moins un de ces produits pour que le code soit valide.</small>
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1; display:flex; justify-content:flex-end;">
+              <button type="submit" class="btn btn-primary" data-i18n="promotions.createBtn">Créer le code</button>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3 data-i18n="promotions.existingCodes">Codes existants</h3></div>
+          <div class="table-wrap">
+            <table class="data-table" id="promosTable">
+              <thead>
+                <tr>
+                  <th data-i18n="promotions.colCode">Code</th><th data-i18n="promotions.colType">Type</th><th data-i18n="promotions.colVal">Valeur</th><th data-i18n="promotions.colMin">Min. commande</th>
+                  <th data-i18n="promotions.colExp">Expiration</th><th>Statut</th><th>Portée</th><th data-i18n="promotions.colUsg">Utilisations</th><th data-i18n="prodPanel.act">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="promosBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders Panel -->
+      <div class="panel" id="panelOrders">
+        <div class="panel-header">
+          <h3 data-i18n="ordPanel.title">جميع الطلبات</h3>
+          <div class="filter-group">
+            <select id="orderStatusFilter" class="select-input">
+              <option value="" data-i18n="ordPanel.filter">جميع الحالات</option>
+              <option value="pending" data-i18n="status.pending">قيد الانتظار</option>
+              <option value="confirmed" data-i18n="status.confirmed">مؤكد</option>
+              <option value="preparing" data-i18n="status.preparing">قيد التحضير</option>
+              <option value="ready" data-i18n="status.ready">جاهز</option>
+              <option value="delivered" data-i18n="status.delivered">تم التوصيل</option>
+              <option value="cancelled" data-i18n="status.cancelled">ملغى</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table" id="ordersTable">
+              <thead>
+                <tr>
+                  <th data-i18n="recent.id">الرقم</th>
+                  <th data-i18n="recent.cust">العميل</th>
+                  <th data-i18n="ordPanel.phone">الهاتف</th>
+                  <th data-i18n="ordPanel.address">العنوان</th>
+                  <th data-i18n="recent.items">العناصر</th>
+                  <th data-i18n="recent.total">المجموع</th>
+                  <th data-i18n="recent.status">الحالة</th>
+                  <th data-i18n="recent.date">التاريخ</th>
+                  <th data-i18n="prodPanel.act">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="ordersBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- City Delivery Panel -->
+      <div class="panel" id="panelCitydelivery">
+        <div class="panel-header">
+          <h3>📍 Livraisons par ville</h3>
+          <button class="btn btn-outline" id="cityExportBtn" onclick="exportCityCSV()" style="font-size:13px;padding:8px 16px;">
+            <button class="btn btn-outline" id="exportCityBtn" style="padding: 6px 12px; font-size: 13px;">⬇️ Exporter par ville (CSV)</button>
+          </button>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="stats-grid" id="cityStatsGrid" style="margin-bottom:24px;">
+          <div class="stat-card">
+            <div class="stat-icon stat-blue">🏙️</div>
+            <div class="stat-info">
+              <span class="stat-value" id="cityStatVilles">—</span>
+              <span class="stat-label">Total villes desservies</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-orange">🥇</div>
+            <div class="stat-info">
+              <span class="stat-value" id="cityStatTopVille">—</span>
+              <span class="stat-label">Ville la plus active</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-green">🌍</div>
+            <div class="stat-info">
+              <span class="stat-value" id="cityStatHorsMarrakech">—</span>
+              <span class="stat-label">Commandes hors Marrakech</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card" style="margin-bottom:24px;">
+          <div class="card-header"><h3>📊 Commandes par ville (Top 10)</h3></div>
+          <div style="padding:16px 16px 8px;">
+            <canvas id="cityOrdersChart" height="90"></canvas>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card" style="margin-bottom:20px;">
+          <div style="padding:16px; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+            <div style="flex:1;min-width:180px;">
+              <label style="font-size:12px;color:var(--text-light);display:block;margin-bottom:4px;">🔍 Recherche</label>
+              <input type="text" id="citySearchInput" placeholder="Nom, ville, adresse..." style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--dark-border);background:var(--bg-input);color:var(--text);font-size:13px;font-family:inherit;" oninput="renderCityGroups()">
+            </div>
+            <div style="min-width:180px;">
+              <label style="font-size:12px;color:var(--text-light);display:block;margin-bottom:4px;">🏙️ Ville</label>
+              <select id="cityFilterSelect" class="select-input" style="font-size:13px;" onchange="renderCityGroups()">
+                <option value="">Toutes les villes</option>
+              </select>
+            </div>
+            <div style="min-width:160px;">
+              <label style="font-size:12px;color:var(--text-light);display:block;margin-bottom:4px;">📋 Statut</label>
+              <select id="cityStatusFilter" class="select-input" style="font-size:13px;" onchange="renderCityGroups()">
+                <option value="">Tous les statuts</option>
+                <option value="pending">Nouvelle</option>
+                <option value="confirmed">Confirmée</option>
+                <option value="preparing">En préparation</option>
+                <option value="ready">Expédiée</option>
+                <option value="delivered">Livrée</option>
+                <option value="cancelled">Annulée</option>
+              </select>
+            </div>
+            <div style="min-width:160px;">
+              <label style="font-size:12px;color:var(--text-light);display:block;margin-bottom:4px;">↕️ Trier les villes par</label>
+              <select id="citySortSelect" class="select-input" style="font-size:13px;" onchange="renderCityGroups()">
+                <option value="count">Nombre de commandes</option>
+                <option value="alpha">Ordre alphabétique</option>
+                <option value="revenue">Chiffre d'affaires</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grouped Order List -->
+        <div id="cityGroupsContainer"></div>
+      </div>
+
+      <!-- Settings Panel -->
+      <div class="panel" id="panelSettings">
+        <div class="card settings-card">
+          <h3 data-i18n="settings.shopTitle">ParamÃ¨tres de la boutique</h3>
+          <form id="shopSettingsForm">
+            <!-- Section: Informations de la boutique -->
+            <h4 style="margin: 24px 0 16px; color: var(--brown); border-bottom: 1px solid var(--sand); padding-bottom: 8px;" data-i18n="settings.infoBoutique">Informations de la boutique</h4>
+            <div class="form-group">
+              <label data-i18n="settings.siteName">Nom du site</label>
+              <input type="text" id="settingSiteName" placeholder="Ex: O Souly" data-i18n="settings.siteNamePh">
+              <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.siteNameHelp">Le nom affiché sur le site client et dans l'onglet du navigateur.</small>
+            </div>
+            <div class="form-group">
+              <label data-i18n="settings.shopType">Description du magasin</label>
+              <textarea id="settingDescription" rows="3" placeholder="Décrivez votre boutique en quelques mots..." data-i18n="settings.shopTypePh"></textarea>
+              <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.shopTypeHelp">Ce texte apparaît sur la page d'accueil et la page À Propos du site client.</small>
+            </div>
+
+            <!-- Section: Informations de contact -->
+            <h4 style="margin: 24px 0 16px; color: var(--brown); border-bottom: 1px solid var(--sand); padding-bottom: 8px;" data-i18n="settings.infoContact">Informations de contact</h4>
+            <div class="form-group">
+              <label data-i18n="settings.shopAddress">Adresse</label>
+              <input type="text" id="settingAddress" placeholder="Ex: Rue Lieutenant Lamure, Résidence Palmera, Gueliz, Marrakech" data-i18n="settings.shopAddressPh">
+            </div>
+            <div class="form-group">
+              <label data-i18n="settings.shopMaps">Lien Google Maps</label>
+              <input type="text" id="settingGoogleMapsLink" placeholder="Ex: https://maps.app.goo.gl/..." data-i18n="settings.shopMapsPh">
+              <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.shopMapsHelp">Collez ici le lien Google Maps de votre boutique.</small>
+            </div>
+            <div class="form-group">
+              <label data-i18n="settings.shopPhone">Téléphone</label>
+              <input type="text" id="settingPhone" placeholder="Ex: +212 6 61 26 95 36" data-i18n="settings.shopPhonePh">
+              <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.shopPhoneHelp">Affiché sur le site et utilisé pour les confirmations WhatsApp.</small>
+            </div>
+            <div class="form-group">
+              <label data-i18n="settings.shopHours">Horaires d'ouverture</label>
+              <textarea id="settingOpenHours" rows="2" placeholder="Ex: Lundi – Samedi: 9h00 – 20h00 / Dimanche: 10h00 – 18h00" data-i18n="settings.shopHoursPh"></textarea>
+            </div>
+
+            <!-- Section: Commande et paiement -->
+            <h4 style="margin: 24px 0 16px; color: var(--brown); border-bottom: 1px solid var(--sand); padding-bottom: 8px;" data-i18n="settings.orderPayment">Commande et paiement</h4>
+            <div class="form-group">
+              <label data-i18n="settings.shopPayment">Conditions de paiement</label>
+              <textarea id="settingPaymentTerms" rows="2" placeholder="Ex: Paiement Ã  la livraison pour Marrakech. Prépayé par virement pour livraison nationale." data-i18n="settings.shopPaymentPh"></textarea>
+            </div>
+            <div class="form-group">
+              <label data-i18n="settings.shopZone">Zones de livraison</label>
+              <textarea id="settingDeliveryZones" rows="2" placeholder="Ex: Marrakech: gratuit / National: tarif calculé selon le poids / International: nous contacter" data-i18n="settings.shopZonePh"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label data-i18n="settings.minOrder">Montant minimum de commande</label>
+                <input type="text" inputmode="decimal" id="settingMinOrderAmount" placeholder="Ex: 100" >
+                <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.minOrderHelp">Le client ne pourra pas passer commande en dessous de ce montant en MAD. Laissez vide ou Ã  0 pour désactiver.</small>
+              </div>
+              <div class="form-group">
+                <label data-i18n="settings.deliveryFee">Frais de livraison</label>
+                <input type="text" inputmode="decimal" id="settingDeliveryFee" placeholder="Ex: 30" >
+                <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.deliveryFeeHelp">Frais de livraison appliqué au panier en MAD. Laissez vide ou Ã  0 pour livraison gratuite par défaut.</small>
+              </div>
+            </div>
+            <div class="form-group">
+              <label data-i18n="settings.freeDeliveryThresh">Seuil de livraison gratuite</label>
+              <input type="text" inputmode="decimal" id="settingFreeDeliveryThreshold" placeholder="Ex: 300" >
+              <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.freeDeliveryThreshHelp">Si le panier dépasse ce montant en MAD, la livraison devient gratuite automatiquement. Laissez vide pour désactiver.</small>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="checkbox-label" style="margin-top: 28px;">
+                  <input type="checkbox" id="settingTaxEnabled"> <span data-i18n="settings.taxEnabled">TVA activée</span>
+                </label>
+                <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.taxEnabledHelp">Active ou désactive l'ajout automatique de la TVA au total de la commande.</small>
+              </div>
+              <div class="form-group">
+                <label data-i18n="settings.taxRate">Taux de TVA (%)</label>
+                <input type="text" inputmode="decimal" id="settingTaxRate" placeholder="Ex: 20"  >
+                <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.taxRateHelp">Pourcentage de TVA appliqué si l'option ci-dessus est activée.</small>
+              </div>
+            </div>
+
+            <!-- Section: Disponibilité de la boutique -->
+            <h4 style="margin: 24px 0 16px; color: var(--brown); border-bottom: 1px solid var(--sand); padding-bottom: 8px;" data-i18n="settings.storeAvail">Disponibilité de la boutique</h4>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="settingStoreOpen" checked> <span data-i18n="settings.storeOpen">Boutique ouverte</span>
+              </label>
+              <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.storeOpenHelp">Lorsque désactivé, les clients ne peuvent plus passer de commande sur le site.</small>
+            </div>
+            <div class="form-group">
+              <label data-i18n="settings.storeClosedMsg">Message boutique fermée</label>
+              <textarea id="settingStoreClosedMessage" rows="2" placeholder="Ex: Nous sommes actuellement fermés. Revenez bientÃ´t ou contactez-nous au +212 6 61 26 95 36."></textarea>
+              <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.storeClosedMsgHelp">Ce message s'affiche sur le site client quand la boutique est fermée.</small>
+            </div>
+
+            <!-- Section: Notifications de commande -->
+            <h4 style="margin: 24px 0 16px; color: var(--brown); border-bottom: 1px solid var(--sand); padding-bottom: 8px;" data-i18n="settings.orderNotif">Notifications de commande</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label data-i18n="settings.orderWhatsapp">Numéro WhatsApp pour les commandes</label>
+                <input type="text" id="settingOrderWhatsapp" placeholder="Ex: +212 6 61 26 95 36">
+                <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.orderWhatsappHelp">Numéro qui recevra une notification Ã  chaque nouvelle commande. Peut Ãªtre différent du téléphone affiché publiquement.</small>
+              </div>
+              <div class="form-group">
+                <label data-i18n="settings.orderEmail">Email pour les commandes</label>
+                <input type="email" id="settingOrderEmail" placeholder="Ex: contact@osouly.ma">
+                <small style="color: var(--text-light); font-size: 12px; display: block; margin-top: 4px;" data-i18n="settings.orderEmailHelp">Si renseigné, un email sera envoyé Ã  cette adresse Ã  chaque nouvelle commande. Laissez vide pour désactiver.</small>
+              </div>
+            </div>
+
+            <!-- Section: Réseaux sociaux -->
+            <h4 style="margin: 24px 0 16px; color: var(--brown); border-bottom: 1px solid var(--sand); padding-bottom: 8px;" data-i18n="settings.socialLinks">Réseaux sociaux</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label data-i18n="settings.instagramLink">Lien Instagram</label>
+                <input type="text" id="settingInstagramLink" placeholder="Ex: https://instagram.com/osoulymarrakech">
+              </div>
+              <div class="form-group">
+                <label data-i18n="settings.facebookLink">Lien Facebook</label>
+                <input type="text" id="settingFacebookLink" placeholder="Ex: https://facebook.com/osoulymarrakech">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" data-i18n="settings.shopBtn">Save Settings</button>
+          </form>
+          
+          <h3 style="margin-top: 40px;" data-i18n="settings.title">Account Settings</h3>
+          <form id="adminProfileForm">
+            <div class="form-group">
+              <label data-i18n="settings.newUser">New Username</label>
+              <input type="text" id="profileNewUsername" autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label data-i18n="settings.curPass">Current Password *</label>
+              <input type="password" id="profileCurrentPassword" autocomplete="current-password" required>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label data-i18n="settings.newPass">New Password</label>
+                <input type="password" id="profileNewPassword" autocomplete="new-password" minlength="6">
+              </div>
+              <div class="form-group">
+                <label data-i18n="settings.confPass">Confirm New Password</label>
+                <input type="password" id="profileConfirmPassword" autocomplete="new-password" minlength="6">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" data-i18n="settings.btn">Save Account Settings</button>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Product Modal -->
+  <div class="modal-overlay" id="productModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="productModalTitle" data-i18n="prodModal.addTitle">إضافة منتج</h3>
+        <button class="modal-close" id="productModalClose">&times;</button>
+      </div>
+      <form id="productForm" enctype="multipart/form-data">
+        <input type="hidden" id="productId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label data-i18n="prodModal.name">اسم المنتج *</label>
+            <input type="text" id="productName" required>
+          </div>
+          <div class="form-group">
+            <label data-i18n="prodModal.desc">الوصف</label>
+            <textarea id="productDescription" rows="3"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label data-i18n="prodModal.price">السعر (MAD) *</label>
+              <input type="text" inputmode="decimal" id="productPrice" required  >
+            </div>
+            <div class="form-group">
+              <label data-i18n="prodModal.cat">الفئة</label>
+              <select id="productCategory" class="select-input"></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="productFeatured"> <span data-i18n="prodModal.featLabel">منتج مميز</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="productAvailable" checked> <span data-i18n="prodModal.availLabel">متاح</span>
+              </label>
+            </div>
+          </div>
+          <!-- Stock Management -->
+          <div class="form-row" style="margin-top:8px;">
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="productTrackStock" onchange="toggleStockInput()"> <span>Suivre le stock</span>
+              </label>
+            </div>
+            <div class="form-group" id="stockQtyGroup" style="display:none;">
+              <label>Quantité en stock</label>
+              <input type="text" inputmode="decimal" id="productStock"  placeholder="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="prodModal.img">صورة المنتج</label>
+            <div class="file-upload" id="fileUpload">
+              <input type="file" id="productImage" accept="image/*">
+              <span data-i18n="prodModal.drag">📸 انقر أو اسحب الصورة هنا</span>
+            </div>
+            <div class="image-preview" id="imagePreview"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="cancelProductBtn" data-i18n="prodModal.cancel">إلغاء</button>
+          <button type="submit" class="btn btn-primary" id="saveProductBtn" data-i18n="prodModal.save">حفظ المنتج</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Order Detail Modal -->
+  <div class="modal-overlay" id="orderDetailModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="orderDetailTitle" data-i18n="ordModal.title">تفاصيل الطلب</h3>
+        <button class="modal-close" id="orderDetailClose">&times;</button>
+      </div>
+      <div class="modal-body" id="orderDetailBody"></div>
+    </div>
+  </div>
+
+  <!-- Custom Confirm Modal -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal" style="max-width: 400px; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--dark-border);">
+      <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+        <h3 id="confirmModalTitle" style="font-size: 16px; font-weight: 700; color: var(--danger);">Confirm Action</h3>
+        <button class="modal-close" id="confirmModalClose">&times;</button>
+      </div>
+      <div class="modal-body" style="padding-top: 12px; padding-bottom: 12px;">
+        <p id="confirmModalMessage" style="color: var(--text-light); font-size: 14px; line-height: 1.5;"></p>
+      </div>
+      <div class="modal-footer" style="border-top: none; padding-top: 0;">
+        <button class="btn btn-outline btn-sm" id="confirmModalCancelBtn">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="confirmModalConfirmBtn" style="background: var(--danger); box-shadow: none;">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="adminToast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/js/cities.js"></script>
+  <script src="/admin/js/i18n-admin.js"></script>
+  <script src="/admin/js/admin.js"></script>
+</body>
+</html>
+
