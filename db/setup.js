@@ -271,6 +271,22 @@ async function initDatabase() {
     console.log('✅ Sample products seeded');
   }
 
+
+  // Migration: Add WhatsApp settings fields
+  try {
+    db.run("ALTER TABLE settings ADD COLUMN whatsappAdminNumber TEXT DEFAULT ''");
+    db.run("ALTER TABLE settings ADD COLUMN whatsappEnabled INTEGER DEFAULT 1");
+    db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateConfirmation TEXT DEFAULT ''");
+    db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateShipped TEXT DEFAULT ''");
+    db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateDelivered TEXT DEFAULT ''");
+    db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateCancelled TEXT DEFAULT ''");
+  } catch(e) {}
+
+  // Migration: Add whatsappLog to orders
+  try {
+    db.run("ALTER TABLE orders ADD COLUMN whatsappLog TEXT DEFAULT '[]'");
+  } catch(e) {}
+
   // Save to disk
   saveDatabase();
 

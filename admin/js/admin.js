@@ -194,6 +194,32 @@ async function loadShopSettings() {
     
     document.getElementById('settingInstagramLink').value = settings.instagramLink || "";
     document.getElementById('settingFacebookLink').value = settings.facebookLink || "";
+
+    // Fetch whatsapp settings securely
+    try {
+      const waRes = await fetch(`${API}/api/settings/whatsapp`, { headers: authHeaders() });
+      if (waRes.ok) {
+        const waSettings = await waRes.json();
+        window.whatsappAdminConfig = waSettings;
+        document.getElementById('settingWhatsappAdminNumber').value = waSettings.whatsappAdminNumber || "";
+        document.getElementById('settingWhatsappEnabled').checked = waSettings.whatsappEnabled !== false;
+        
+        const defaultConfirm = "Bonjour {clientName} 👋\nMerci pour votre commande chez O Souly ! 🌿\nVotre commande numéro #{orderId} a bien été reçue.\n📦 Produits commandés:\n{orderItems}\n💰 Total: {orderTotal} MAD\n📍 Adresse de livraison: {clientAddress}, {clientCity}\nNous vous contacterons bientôt pour confirmer la livraison. Merci de votre confiance ! ✨";
+        document.getElementById('settingWhatsappTemplateConfirmation').value = waSettings.whatsappTemplateConfirmation || defaultConfirm;
+        
+        const defaultShipped = "Bonjour {clientName} 👋\nBonne nouvelle ! Votre commande O Souly numéro #{orderId} a été expédiée. 🚚\n📍 Adresse de livraison: {clientAddress}, {clientCity}\nVous recevrez votre colis très bientôt. Merci pour votre confiance ! 🌿";
+        document.getElementById('settingWhatsappTemplateShipped').value = waSettings.whatsappTemplateShipped || defaultShipped;
+        
+        const defaultDelivered = "Bonjour {clientName} 👋\nVotre commande O Souly numéro #{orderId} a bien été livrée ! ✅\nNous espérons que vous êtes satisfait(e) de vos produits. 🌿\nN'hésitez pas à nous contacter pour toute question. À bientôt !";
+        document.getElementById('settingWhatsappTemplateDelivered').value = waSettings.whatsappTemplateDelivered || defaultDelivered;
+        
+        const defaultCancelled = "Bonjour {clientName} 👋\nNous sommes désolés de vous informer que votre commande O Souly numéro #{orderId} a été annulée.\nPour toute question, n'hésitez pas à nous contacter directement. Merci de votre compréhension. 🌿";
+        document.getElementById('settingWhatsappTemplateCancelled').value = waSettings.whatsappTemplateCancelled || defaultCancelled;
+      }
+    } catch (err) {
+      console.error("Failed to load WhatsApp settings", err);
+    }
+
   } catch (err) {
     console.error("Failed to load settings:", err);
   }
@@ -602,6 +628,65 @@ async function viewOrderDetail(id) {
       <div class="order-detail-section" style="margin-top: 20px; border-top: 1px solid var(--dark-border); padding-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
         ${actionButtons}
       </div>
+      
+      ${(window.whatsappAdminConfig && window.whatsappAdminConfig.whatsappEnabled) ? `
+      <div class="order-detail-section" style="margin-top: 20px; border-top: 1px solid var(--dark-border); padding-top: 20px;">
+        <h4 style="display: flex; align-items: center; gap: 6px; color: #25D366; margin-bottom: 12px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+          </svg>
+          Actions WhatsApp
+        </h4>
+        
+        <div class="wa-actions-wrapper">
+          <button class="wa-mobile-toggle" onclick="this.nextElementSibling.classList.toggle('mobile-open')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+            </svg>
+            WhatsApp
+          </button>
+          <div class="wa-desktop-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-sm" style="background: #25D366; color: white; border: none;" onclick="openWhatsappModal(${order.id}, 'confirmation')">Confirmer</button>
+            <button class="btn btn-sm" style="background: #25D366; color: white; border: none;" onclick="openWhatsappModal(${order.id}, 'shipped')">Expédiée</button>
+            <button class="btn btn-sm" style="background: #25D366; color: white; border: none;" onclick="openWhatsappModal(${order.id}, 'delivered')">Livrée</button>
+            <button class="btn btn-sm" style="background: #A83232; color: white; border: none;" onclick="openWhatsappModal(${order.id}, 'cancelled')">Annuler</button>
+            <button class="btn btn-sm" style="background: #6B7C3E; color: #F5F0E8; border: none;" onclick="openWhatsappModal(${order.id}, 'custom')">Message libre</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="order-detail-section" style="margin-top: 20px; border-top: 1px solid var(--dark-border); padding-top: 20px;">
+        <h4 style="margin-bottom: 12px;">Historique WhatsApp</h4>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          ${(() => {
+            let logHtml = '';
+            let log = [];
+            try {
+              log = JSON.parse(order.whatsappLog || '[]');
+            } catch(e) {}
+            
+            if (log.length === 0) {
+              return '<p style="color: var(--text-light); font-size: 13px; font-style: italic;">Aucun message WhatsApp envoyé pour cette commande.</p>';
+            }
+            
+            logHtml = log.map(entry => {
+              const date = new Date(entry.timestamp).toLocaleString(currentLang === 'fr' ? 'fr-FR' : 'en-GB');
+              return `
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--dark-border); padding: 12px; border-radius: 8px;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span class="status-badge" style="background: #E8F5E9; color: #2E7D32;">${entry.templateType}</span>
+                    <span style="font-size: 11px; color: var(--text-light);">${date}</span>
+                  </div>
+                  <div style="font-size: 12px; color: var(--text); background: var(--bg-input); padding: 8px; border-radius: 4px;">${entry.messagePreview || '...'}</div>
+                </div>
+              `;
+            }).join('');
+            
+            return logHtml;
+          })()}
+        </div>
+      </div>
+      ` : ''}
     `;
 
     modal.classList.add('active');
@@ -656,7 +741,15 @@ async function saveShopSettings(e) {
       orderWhatsapp: document.getElementById('settingOrderWhatsapp').value.trim(),
       orderEmail: document.getElementById('settingOrderEmail').value.trim(),
       instagramLink: document.getElementById('settingInstagramLink').value.trim(),
-      facebookLink: document.getElementById('settingFacebookLink').value.trim()
+      facebookLink: document.getElementById('settingFacebookLink').value.trim(),
+
+      whatsappAdminNumber: (document.getElementById('settingWhatsappAdminNumber').value || '').replace(/[\s+\-()]/g, ''),
+      whatsappEnabled: document.getElementById('settingWhatsappEnabled').checked,
+      whatsappTemplateConfirmation: document.getElementById('settingWhatsappTemplateConfirmation').value,
+      whatsappTemplateShipped: document.getElementById('settingWhatsappTemplateShipped').value,
+      whatsappTemplateDelivered: document.getElementById('settingWhatsappTemplateDelivered').value,
+      whatsappTemplateCancelled: document.getElementById('settingWhatsappTemplateCancelled').value,
+
     };
 
     const res = await fetch(`${API}/api/settings`, {
@@ -1292,6 +1385,18 @@ function populateCityFilterDropdown() {
   }
   
   select.innerHTML = options;
+
+  const dataList = document.getElementById('adminCityDataList');
+  if (dataList) {
+    let dlOptions = '';
+    const autocompleteCities = [...new Set([...standardCities, ...customCities])].sort();
+    autocompleteCities.forEach(c => {
+      if (c !== 'Inconnue') {
+        dlOptions += `<option value="${c}">`;
+      }
+    });
+    dataList.innerHTML = dlOptions;
+  }
 }
 
 function renderCityGroups() {
@@ -1378,6 +1483,7 @@ function renderCityGroups() {
                 <th>Montant</th>
                 <th>Statut</th>
                 <th>Date</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -1399,6 +1505,14 @@ function renderCityGroups() {
                     </select>
                   </td>
                   <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                  <td>
+                    ${(window.whatsappAdminConfig && window.whatsappAdminConfig.whatsappEnabled) ? `
+                      <button class="btn btn-sm" style="background: #25D366; color: white; border: none; padding: 4px 8px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" onclick="openWhatsappModal(${o.id}, 'confirmation')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                        WhatsApp
+                      </button>
+                    ` : ''}
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1711,3 +1825,168 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+
+// --- WhatsApp Integration ---
+let currentWhatsappOrder = null;
+let currentWhatsappTemplate = '';
+
+function buildWhatsAppMessage(template, order) {
+  if (!template) return '';
+  let itemsList = '';
+  if (order.items && order.items.length) {
+    itemsList = order.items.map(item => `- ${item.product_name} x${item.quantity} — ${item.price * item.quantity} MAD`).join('\n');
+  }
+  
+  return template
+    .replace(/\{clientName\}/g, order.customer_name || '')
+    .replace(/\{orderId\}/g, order.id || '')
+    .replace(/\{orderItems\}/g, itemsList)
+    .replace(/\{orderTotal\}/g, order.total || '')
+    .replace(/\{clientAddress\}/g, order.customer_address || '')
+    .replace(/\{clientCity\}/g, order.customer_city || '')
+    .replace(/\{clientPhone\}/g, order.customer_phone || '');
+}
+
+window.openWhatsappModal = function(orderId, templateType) {
+  try {
+    if (!window.whatsappAdminConfig) {
+      // Config not loaded yet — try loading it inline
+      showAdminToast("Configuration WhatsApp en cours de chargement...", "info");
+      fetch(`${API}/api/settings/whatsapp`, { headers: authHeaders() })
+        .then(r => r.json())
+        .then(cfg => {
+          window.whatsappAdminConfig = cfg;
+          window.openWhatsappModal(orderId, templateType);
+        })
+        .catch(() => showAdminToast("Impossible de charger la config WhatsApp", "error"));
+      return;
+    }
+    if (!window.whatsappAdminConfig.whatsappEnabled) {
+      showAdminToast("WhatsApp est désactivé. Activez-le dans Paramètres → Intégration WhatsApp.", "error");
+      return;
+    }
+    
+    // Fetch order details
+    fetch(`${API}/api/orders/${orderId}`, { headers: authHeaders() })
+      .then(res => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.json();
+      })
+      .then(order => {
+        currentWhatsappOrder = order;
+        currentWhatsappTemplate = templateType;
+        
+        document.getElementById('waPreviewName').textContent = order.customer_name || '';
+        document.getElementById('waPreviewPhone').textContent = order.customer_phone || '';
+        document.getElementById('waPreviewCity').textContent = order.customer_city || '';
+        document.getElementById('waPreviewTotal').textContent = order.total || '';
+        
+        let templateStr = '';
+        if (templateType === 'confirmation') templateStr = window.whatsappAdminConfig.whatsappTemplateConfirmation;
+        else if (templateType === 'shipped') templateStr = window.whatsappAdminConfig.whatsappTemplateShipped;
+        else if (templateType === 'delivered') templateStr = window.whatsappAdminConfig.whatsappTemplateDelivered;
+        else if (templateType === 'cancelled') templateStr = window.whatsappAdminConfig.whatsappTemplateCancelled;
+        else templateStr = ''; // custom message is empty initially
+        
+        const message = buildWhatsAppMessage(templateStr, order);
+        const textarea = document.getElementById('waPreviewMessage');
+        textarea.value = message;
+        updateWaCharCount();
+        
+        document.getElementById('waPreviewReset').onclick = (e) => {
+          e.preventDefault();
+          textarea.value = message;
+          updateWaCharCount();
+        };
+        
+        const modal = document.getElementById('whatsappPreviewModal');
+        if (!modal) {
+          showAdminToast("Erreur: Élément modal introuvable.", "error");
+          return;
+        }
+        modal.style.display = 'flex';
+      })
+      .catch(err => {
+        console.error(err);
+        showAdminToast('Erreur lors de la récupération de la commande: ' + err.message, 'error');
+      });
+  } catch (err) {
+    showAdminToast('Erreur inattendue: ' + err.message, 'error');
+    console.error('openWhatsappModal Error:', err);
+  }
+};
+
+function updateWaCharCount() {
+  const textarea = document.getElementById('waPreviewMessage');
+  const count = textarea.value.length;
+  document.getElementById('waPreviewCount').textContent = `${count} caractères`;
+}
+
+document.getElementById('waPreviewMessage')?.addEventListener('input', updateWaCharCount);
+
+window.closeWhatsappModal = function() {
+  document.getElementById('whatsappPreviewModal').style.display = 'none';
+  currentWhatsappOrder = null;
+  currentWhatsappTemplate = '';
+};
+
+window.sendWhatsappMessage = function() {
+  if (!currentWhatsappOrder) {
+    showAdminToast('Erreur: Aucune commande sélectionnée', 'error');
+    return;
+  }
+  if (!window.whatsappAdminConfig) {
+    showAdminToast('Erreur: Configuration WhatsApp manquante', 'error');
+    return;
+  }
+  
+  const text = document.getElementById('waPreviewMessage').value;
+  let phone = currentWhatsappOrder.customer_phone || '';
+  
+  // Format Moroccan phone number
+  phone = phone.replace(/[\s+\-()]/g, '');
+  if (phone.startsWith('0')) {
+    phone = '212' + phone.substring(1);
+  } else if (!phone.startsWith('212') && !phone.startsWith('00212')) {
+    phone = '212' + phone; // Fallback
+  }
+  if (phone.startsWith('00212')) {
+    phone = phone.substring(2);
+  }
+  
+  const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+  
+  // Open window synchronously to avoid popup blockers
+  const newWin = window.open(waUrl, '_blank');
+  if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+    // Popup was blocked
+    showAdminToast('Le navigateur a bloqué l\'ouverture de WhatsApp. Veuillez autoriser les pop-ups.', 'error');
+    // Fallback to current window
+    window.location.href = waUrl;
+  } else {
+    showAdminToast('WhatsApp ouvert — envoyez le message depuis votre téléphone', 'success');
+  }
+  
+  closeWhatsappModal();
+  
+  // Log action asynchronously
+  (async () => {
+    try {
+      await fetch(`${API}/api/orders/${currentWhatsappOrder.id}/whatsapp-log`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          templateType: currentWhatsappTemplate,
+          messagePreview: text
+        })
+      });
+      // Refresh order details if it's currently open
+      if (document.getElementById('orderDetailsModal')?.style.display === 'flex') {
+        viewOrder(currentWhatsappOrder.id);
+      }
+    } catch (err) {
+      console.error('Failed to log WhatsApp action', err);
+    }
+  })();
+};

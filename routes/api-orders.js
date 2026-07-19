@@ -299,7 +299,37 @@ function createOrderRoutes(db) {
     }
   });
 
+
+  // POST /api/orders/:id/whatsapp-log - Add to whatsapp log
+  router.post('/:id/whatsapp-log', authenticateToken, (req, res) => {
+    try {
+      const { templateType, messagePreview } = req.body;
+      const existing = db.get('SELECT * FROM orders WHERE id = ?', [parseInt(req.params.id)]);
+      if (!existing) return res.status(404).json({ error: 'Order not found.' });
+
+      let log = [];
+      try {
+        log = JSON.parse(existing.whatsappLog || '[]');
+      } catch (e) {
+        log = [];
+      }
+
+      log.push({
+        timestamp: new Date().toISOString(),
+        templateType,
+        messagePreview: messagePreview ? messagePreview.substring(0, 100) : ''
+      });
+
+      db.run('UPDATE orders SET whatsappLog = ? WHERE id = ?', [JSON.stringify(log), parseInt(req.params.id)]);
+      res.json({ message: 'Log added' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Server error.' });
+    }
+  });
+
   return router;
+
 }
 
 module.exports = createOrderRoutes;

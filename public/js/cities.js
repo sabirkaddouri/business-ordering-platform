@@ -1,4 +1,5 @@
 // Predefined list of Moroccan cities
+(function() {
 const MOROCCAN_CITIES = [
   { name: "Casablanca", region: "Casablanca-Settat" },
   { name: "Rabat", region: "Rabat-Salé-Kénitra" },
@@ -59,3 +60,4 @@ if (typeof module !== 'undefined' && module.exports) {
 } else if (typeof window !== 'undefined') {
   window.MOROCCAN_CITIES = MOROCCAN_CITIES;
 }
+})();

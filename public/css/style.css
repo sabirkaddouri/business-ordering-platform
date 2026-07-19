@@ -1309,17 +1309,54 @@ hr, .divider {
   max-width: 100%;
 }
 
-/* Desktop Checkout Modal */
-.modal {
-  max-width: 800px;
+/* Desktop Checkout Modal — scoped to #orderModal only */
+/* When order-form is display:contents, form's own padding is lost; restore it on each child */
+#orderModal .order-form > * { padding-left: 28px; padding-right: 28px; }
+#orderModal .checkout-notices { padding-left: 28px; padding-right: 28px; }
+#orderModal button[type="submit"] { margin: 0 28px 28px; width: calc(100% - 56px); }
+#orderModal .modal {
+  max-width: 820px;
   display: grid;
-  grid-template-columns: 60% 40%;
-  gap: 32px;
+  grid-template-columns: 1fr 340px;
+  gap: 0 32px;
+  align-items: start;
 }
-.order-form { display: contents; } /* Allows grid to span its children */
-.modal-header { grid-column: 1 / -1; }
-.checkout-notices { grid-column: 1 / -1; }
-.order-summary { grid-column: 2; grid-row: 3 / span 6; position: sticky; top: 20px; }
+#orderModal .modal-header {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+#orderModal .order-form {
+  display: contents;
+  padding: 0;
+}
+#orderModal .checkout-notices {
+  grid-column: 1;
+  grid-row: 2;
+  margin-top: 24px;
+}
+#orderModal .form-group {
+  grid-column: 1;
+}
+#orderModal .form-row {
+  grid-column: 1;
+}
+#orderModal #otpGroup {
+  grid-column: 1;
+}
+#orderModal #promoSection {
+  grid-column: 1;
+}
+#orderModal button[type="submit"] {
+  grid-column: 1;
+}
+#orderModal .order-summary {
+  grid-column: 2;
+  grid-row: 2 / span 10;
+  position: sticky;
+  top: 24px;
+  margin-top: 24px;
+  align-self: start;
+}
 
 
 /* Desktop About */
@@ -1418,9 +1455,14 @@ hr, .divider {
   .pd-image-col img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
   #relatedProductsGrid { grid-template-columns: repeat(3, 1fr); }
   
-  /* Checkout */
-  .modal { display: flex; flex-direction: column; }
-  .order-summary { position: static; order: 3; }
+  /* Checkout — revert to single column on tablet */
+  #orderModal .modal {
+    display: flex;
+    flex-direction: column;
+    max-width: 580px;
+  }
+  #orderModal .order-form { display: block; padding: 0 28px 28px; }
+  #orderModal .order-summary { position: static; margin-top: 0; }
   
   /* About */
   .about-features { grid-template-columns: repeat(2, 1fr); }
@@ -1519,7 +1561,8 @@ hr, .divider {
     bottom: 0;
     left: 0;
     right: 0;
-    width: 100%;
+    width: 100% !important;
+    margin: 0 !important;
     height: 56px;
     border-radius: 0;
     z-index: 1000;

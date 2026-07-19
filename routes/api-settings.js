@@ -61,47 +61,84 @@ function createSettingsRoutes(db) {
   // POST /api/settings - protected route to save settings
   router.post('/', authenticateToken, (req, res) => {
     try {
-      const { 
-        description, address, googleMapsLink, phone, openHours, paymentTerms, deliveryZones,
-        siteName, minOrderAmount, deliveryFee, freeDeliveryThreshold,
-        taxEnabled, taxRate, storeOpen, storeClosedMessage,
-        orderWhatsapp, orderEmail, instagramLink, facebookLink
-      } = req.body;
-      
+      const body = req.body;
+
       const countRow = db.get('SELECT COUNT(*) as count FROM settings');
       if (countRow.count === 0) {
+        // No settings row yet — insert with provided values
         db.run(
           `INSERT INTO settings (
             description, address, googleMapsLink, phone, openHours, paymentTerms, deliveryZones,
             siteName, minOrderAmount, deliveryFee, freeDeliveryThreshold,
             taxEnabled, taxRate, storeOpen, storeClosedMessage,
-            orderWhatsapp, orderEmail, instagramLink, facebookLink
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            orderWhatsapp, orderEmail, instagramLink, facebookLink,
+            whatsappAdminNumber, whatsappEnabled, whatsappTemplateConfirmation,
+            whatsappTemplateShipped, whatsappTemplateDelivered, whatsappTemplateCancelled
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            description, address, googleMapsLink, phone, openHours, paymentTerms, deliveryZones,
-            siteName, minOrderAmount, deliveryFee, freeDeliveryThreshold,
-            taxEnabled ? 1 : 0, taxRate, storeOpen ? 1 : 0, storeClosedMessage,
-            orderWhatsapp, orderEmail, instagramLink, facebookLink
+            body.description || '', body.address || '', body.googleMapsLink || '',
+            body.phone || '', body.openHours || '', body.paymentTerms || '', body.deliveryZones || '',
+            body.siteName || '', body.minOrderAmount || 0, body.deliveryFee || 0, body.freeDeliveryThreshold || null,
+            body.taxEnabled ? 1 : 0, body.taxRate || 0, body.storeOpen !== false ? 1 : 0, body.storeClosedMessage || '',
+            body.orderWhatsapp || '', body.orderEmail || '', body.instagramLink || '', body.facebookLink || '',
+            body.whatsappAdminNumber || '', body.whatsappEnabled ? 1 : 0,
+            body.whatsappTemplateConfirmation || '', body.whatsappTemplateShipped || '',
+            body.whatsappTemplateDelivered || '', body.whatsappTemplateCancelled || ''
           ]
         );
       } else {
+        // Existing row — fetch it first, then merge only what was sent
+        const existing = db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1') || {};
+        const m = (key, fallback) => body[key] !== undefined ? body[key] : (existing[key] !== undefined ? existing[key] : fallback);
+
         db.run(
-          `UPDATE settings SET 
-            description = ?, address = ?, googleMapsLink = ?, phone = ?, openHours = ?, paymentTerms = ?, deliveryZones = ?,
-            siteName = ?, minOrderAmount = ?, deliveryFee = ?, freeDeliveryThreshold = ?,
+          `UPDATE settings SET
+            description = ?, address = ?, googleMapsLink = ?, phone = ?, openHours = ?,
+            paymentTerms = ?, deliveryZones = ?, siteName = ?,
+            minOrderAmount = ?, deliveryFee = ?, freeDeliveryThreshold = ?,
             taxEnabled = ?, taxRate = ?, storeOpen = ?, storeClosedMessage = ?,
-            orderWhatsapp = ?, orderEmail = ?, instagramLink = ?, facebookLink = ?
-           WHERE id = (SELECT id FROM settings ORDER BY id DESC LIMIT 1)`,
+            orderWhatsapp = ?, orderEmail = ?, instagramLink = ?, facebookLink = ?,
+            whatsappAdminNumber = ?, whatsappEnabled = ?,
+            whatsappTemplateConfirmation = ?, whatsappTemplateShipped = ?,
+            whatsappTemplateDelivered = ?, whatsappTemplateCancelled = ?
+          WHERE id = (SELECT id FROM settings ORDER BY id DESC LIMIT 1)`,
           [
-            description, address, googleMapsLink, phone, openHours, paymentTerms, deliveryZones,
-            siteName, minOrderAmount, deliveryFee, freeDeliveryThreshold,
-            taxEnabled ? 1 : 0, taxRate, storeOpen ? 1 : 0, storeClosedMessage,
-            orderWhatsapp, orderEmail, instagramLink, facebookLink
+            m('description', ''), m('address', ''), m('googleMapsLink', ''),
+            m('phone', ''), m('openHours', ''), m('paymentTerms', ''), m('deliveryZones', ''),
+            m('siteName', ''),
+            m('minOrderAmount', 0), m('deliveryFee', 0), m('freeDeliveryThreshold', null),
+            m('taxEnabled', 0) ? 1 : 0, m('taxRate', 0),
+            m('storeOpen', 1) !== false && m('storeOpen', 1) !== 0 ? 1 : 0,
+            m('storeClosedMessage', ''),
+            m('orderWhatsapp', ''), m('orderEmail', ''), m('instagramLink', ''), m('facebookLink', ''),
+            m('whatsappAdminNumber', ''),
+            m('whatsappEnabled', 0) ? 1 : 0,
+            m('whatsappTemplateConfirmation', ''), m('whatsappTemplateShipped', ''),
+            m('whatsappTemplateDelivered', ''), m('whatsappTemplateCancelled', '')
           ]
         );
       }
-      
+
       res.json({ message: 'Settings saved successfully.' });
+    } catch (err) {
+      console.error('Settings save error:', err);
+      res.status(500).json({ error: 'Server error: ' + err.message });
+    }
+  });
+
+
+  // GET /api/settings/whatsapp - protected route to get whatsapp settings
+  router.get('/whatsapp', authenticateToken, (req, res) => {
+    try {
+      const row = db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1') || {};
+      res.json({
+        whatsappAdminNumber: row.whatsappAdminNumber || '',
+        whatsappEnabled: row.whatsappEnabled === 1,
+        whatsappTemplateConfirmation: row.whatsappTemplateConfirmation || '',
+        whatsappTemplateShipped: row.whatsappTemplateShipped || '',
+        whatsappTemplateDelivered: row.whatsappTemplateDelivered || '',
+        whatsappTemplateCancelled: row.whatsappTemplateCancelled || ''
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Server error' });
@@ -109,6 +146,7 @@ function createSettingsRoutes(db) {
   });
 
   return router;
+
 }
 
 module.exports = createSettingsRoutes;

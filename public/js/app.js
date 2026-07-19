@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('productsGrid')) {
     loadProducts();
   }
-  if (document.getElementById('cityDropdown')) {
+  if (document.getElementById('cityDropdownContainer')) {
     setupCityDropdown();
   }
   if (document.getElementById('promoSection')) {
@@ -805,78 +805,82 @@ function showSkeletons(containerId, count) {
 }
 
 // --- City Dropdown Logic ---
-function setupCityDropdown() {
-  const searchInput = document.getElementById('citySearchInput');
-  const hiddenInput = document.getElementById('customerCity');
-  const dropdownList = document.getElementById('cityDropdownList');
-  const otherInput = document.getElementById('customerCityOther');
-  
-  if (!searchInput || typeof MOROCCAN_CITIES === 'undefined') return;
-
-  const citiesList = [...MOROCCAN_CITIES.map(c => c.name), "Autre ville"];
-
-  function renderList(filter = '') {
-    const term = filter.toLowerCase();
-    const filtered = citiesList.filter(c => c.toLowerCase().includes(term));
+const setupCityDropdown = (function() {
+  function setup() {
+    const searchInput = document.getElementById('citySearchInput');
+    const hiddenInput = document.getElementById('customerCity');
+    const dropdownList = document.getElementById('cityDropdownList');
+    const otherInput = document.getElementById('customerCityOther');
     
-    dropdownList.innerHTML = '';
-    if (filtered.length === 0) {
-      dropdownList.innerHTML = '<li style="padding:8px 12px; color:var(--text-light); font-size:13px;">Aucune ville trouvée</li>';
-    } else {
-      filtered.forEach(city => {
-        const li = document.createElement('li');
-        li.textContent = city;
-        li.style.cssText = 'padding:8px 12px; cursor:pointer; font-size:14px; border-bottom:1px solid var(--dark-border); color:var(--text);';
-        li.onmouseover = () => li.style.background = 'rgba(139,90,43,0.1)';
-        li.onmouseout = () => li.style.background = 'transparent';
-        li.onmousedown = (e) => {
-          // use mousedown so it fires before input blur
-          e.preventDefault();
-          selectCity(city);
-        };
-        dropdownList.appendChild(li);
-      });
-    }
-  }
+    if (!searchInput || typeof MOROCCAN_CITIES === 'undefined') return;
 
-  function selectCity(city) {
-    searchInput.value = city;
-    if (city === 'Autre ville') {
-      hiddenInput.value = 'Autre ville';
-      otherInput.style.display = 'block';
-      otherInput.required = true;
-    } else {
-      hiddenInput.value = city;
+    const citiesList = [...MOROCCAN_CITIES.map(c => c.name), "Autre ville"];
+
+    function renderList(filter = '') {
+      const term = filter.toLowerCase();
+      const filtered = citiesList.filter(c => c.toLowerCase().includes(term));
+      
+      dropdownList.innerHTML = '';
+      if (filtered.length === 0) {
+        dropdownList.innerHTML = '<li style="padding:8px 12px; color:var(--text-light); font-size:13px;">Aucune ville trouvée</li>';
+      } else {
+        filtered.forEach(city => {
+          const li = document.createElement('li');
+          li.textContent = city;
+          li.style.cssText = 'padding:8px 12px; cursor:pointer; font-size:14px; border-bottom:1px solid var(--dark-border); color:var(--text);';
+          li.onmouseover = () => li.style.background = 'rgba(139,90,43,0.1)';
+          li.onmouseout = () => li.style.background = 'transparent';
+          li.onmousedown = (e) => {
+            // use mousedown so it fires before input blur
+            e.preventDefault();
+            selectCity(city);
+          };
+          dropdownList.appendChild(li);
+        });
+      }
+    }
+
+    function selectCity(city) {
+      searchInput.value = city;
+      if (city === 'Autre ville') {
+        hiddenInput.value = 'Autre ville';
+        otherInput.style.display = 'block';
+        otherInput.required = true;
+      } else {
+        hiddenInput.value = city;
+        otherInput.style.display = 'none';
+        otherInput.required = false;
+        otherInput.value = '';
+      }
+      dropdownList.style.display = 'none';
+    }
+
+    searchInput.addEventListener('focus', () => {
+      renderList(searchInput.value);
+      dropdownList.style.display = 'block';
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      renderList(e.target.value);
+      dropdownList.style.display = 'block';
+      hiddenInput.value = ''; // clear hidden value when typing to enforce selection from list
       otherInput.style.display = 'none';
       otherInput.required = false;
-      otherInput.value = '';
-    }
-    dropdownList.style.display = 'none';
+    });
+
+    searchInput.addEventListener('blur', () => {
+      dropdownList.style.display = 'none';
+      // If they click away without valid selection, revert to previous hidden valid value or empty
+      if (hiddenInput.value === '') {
+        searchInput.value = '';
+      } else {
+        searchInput.value = hiddenInput.value;
+      }
+    });
   }
 
-  searchInput.addEventListener('focus', () => {
-    renderList(searchInput.value);
-    dropdownList.style.display = 'block';
-  });
-
-  searchInput.addEventListener('input', (e) => {
-    renderList(e.target.value);
-    dropdownList.style.display = 'block';
-    hiddenInput.value = ''; // clear hidden value when typing to enforce selection from list
-    otherInput.style.display = 'none';
-    otherInput.required = false;
-  });
-
-  searchInput.addEventListener('blur', () => {
-    dropdownList.style.display = 'none';
-    // If they click away without valid selection, revert to previous hidden valid value or empty
-    if (hiddenInput.value === '') {
-      searchInput.value = '';
-    } else {
-      searchInput.value = hiddenInput.value;
-    }
-  });
-}
+  return setup;
+})();
 
 
 // --- Product Detail Page ---
