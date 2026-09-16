@@ -6,10 +6,12 @@
   <meta name="description" content="Découvrez les produits artisanaux marocains de O Souly — miels, huiles d'olive, épices, tisanes et cosmétiques 100% naturels, livrés partout au Maroc.">
   <title>O Souly — Produits du terroir marocain</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Cairo:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <style>
-    body { font-family: 'Cairo', sans-serif; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; }
+    html[lang="ar"] body, html[dir="rtl"] body { font-family: 'Cairo', system-ui, sans-serif; }
     
     /* Force modern shop layout with logo on left and buttons on right */
     .nav-container { 
@@ -263,6 +265,46 @@
     </div>
   </section>
 
+  <!-- Values Section -->
+  <section class="values-section reveal">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Pourquoi choisir O Souly ?</h2>
+      </div>
+      <div class="values-grid">
+        <div class="value-item">
+          <span class="value-icon">🌿</span>
+          <h3>100% Naturel</h3>
+          <p>Aucun additif, aucun colorant — uniquement ce que la nature offre de meilleur.</p>
+        </div>
+        <div class="value-item">
+          <span class="value-icon">🤝</span>
+          <h3>Artisanal</h3>
+          <p>Fabriqué selon des méthodes ancestrales transmises de génération en génération.</p>
+        </div>
+        <div class="value-item">
+          <span class="value-icon">🇲🇦</span>
+          <h3>Fait au Maroc</h3>
+          <p>Sélectionnés avec passion à Marrakech, au cœur du terroir marocain.</p>
+        </div>
+        <div class="value-item">
+          <span class="value-icon">📦</span>
+          <h3>Livré avec soin</h3>
+          <p>Chaque commande est emballée avec attention pour arriver en parfait état.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Promise Banner -->
+  <section class="promise-banner reveal">
+    <div class="container">
+      <blockquote>"De la terre marocaine à votre table"</blockquote>
+      <p class="promise-stats">50+ Produits naturels &nbsp;·&nbsp; 100% Sans additifs &nbsp;·&nbsp; Livraison partout au Maroc</p>
+      <a href="#products" class="btn-promise">Commander maintenant →</a>
+    </div>
+  </section>
+
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
@@ -398,5 +440,34 @@
   <script src="/js/i18n.js"></script>
   <script src="/js/cities.js"></script>
   <script src="/js/app.js"></script>
+  <script>
+    // Scroll-reveal animations
+    (function() {
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1 });
+
+      document.querySelectorAll('.reveal').forEach(function(el) {
+        observer.observe(el);
+      });
+
+      // Navbar scroll class
+      var navbar = document.getElementById('navbar');
+      if (navbar) {
+        window.addEventListener('scroll', function() {
+          if (window.scrollY > 20) {
+            navbar.classList.add('scrolled');
+          } else {
+            navbar.classList.remove('scrolled');
+          }
+        }, { passive: true });
+      }
+    })();
+  </script>
 </body>
 </html>
