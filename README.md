@@ -1,10 +1,10 @@
-# O Souly — Artisan Shop Platform
+# Shop Ordering Platform
 
-A full-stack ordering and e-commerce platform built for O Souly, a Moroccan artisan shop selling natural products including honeys, olive oils, spices, herbal teas, and handmade cosmetics. Built from scratch with Node.js, Express, and SQLite.
+A full-stack ordering and e-commerce platform for small businesses, with an admin dashboard, multilingual support (French, English, Arabic with RTL), and WhatsApp order notifications.
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=node.js&logoColor=white)
 ![Express.js](https://img.shields.io/badge/Express.js-000000?style=flat&logo=express&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/Vanilla_JS-F7DF1E?style=flat&logo=javascript&logoColor=black)
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat&logo=css3&logoColor=white)
@@ -12,28 +12,29 @@ A full-stack ordering and e-commerce platform built for O Souly, a Moroccan arti
 ## Features
 
 - **Full product catalog** with categories, size variants, and stock management
-- **Customer ordering system** with city selection from a predefined Moroccan cities database
+- **Customer ordering system** with a Moroccan cities dropdown at checkout
 - **Promo code system** with global and product-specific targeting
-- **Admin panel** with overview dashboard, product management, order management, and settings
-- **City-based order sorting dashboard** for Morocco-wide shipping
+- **Admin panel** with an overview dashboard, product management, order management, and settings
+- **City-based order sorting dashboard** for delivery logistics
 - **Real-time admin notifications** for new orders
 - **WhatsApp integration** for order confirmations and customer updates
 - **Dynamic shop settings** connected live to the client-facing website
 - **Analytics page** with revenue tracking and best-selling products
-- **Store open/closed toggle** with custom closed message
+- **Store open/closed toggle** with a custom closed message
+- **Multilingual Support** (French, English, Arabic with RTL layout)
 
 ## Tech Stack
 
 - **Frontend:** HTML, CSS, Vanilla JavaScript
 - **Backend:** Node.js, Express.js
-- **Database:** SQLite (migration to PostgreSQL planned)
+- **Database:** PostgreSQL
 - **Hosting:** Railway (planned)
 
 ## Getting Started
 
 1. **Clone the repository:**
    ```bash
-   git clone git clone https://github.com/sabirkaddouri/business-ordering-platform.git
+   git clone https://github.com/sabirkaddouri/business-ordering-platform.git
    ```
 
 2. **Install dependencies:**
@@ -46,7 +47,13 @@ A full-stack ordering and e-commerce platform built for O Souly, a Moroccan arti
    cp .env.example .env
    ```
 
-4. **Fill in your values** in the `.env` file (like admin credentials and session secret).
+4. **Environment Variables:**
+   Ensure your `.env` file contains the following variables:
+   - `DATABASE_URL` (PostgreSQL connection string)
+   - `JWT_SECRET` (Secret key for JWT authentication)
+   - `ADMIN_USERNAME` (Default admin username)
+   - `ADMIN_PASSWORD` (Default admin password)
+   - `ALLOWED_ORIGINS` (Comma-separated list of allowed CORS origins)
 
 5. **Start the development server:**
    ```bash
@@ -57,7 +64,7 @@ A full-stack ordering and e-commerce platform built for O Souly, a Moroccan arti
    npm start
    ```
 
-6. **Open** `http://localhost:3000` in your browser.
+6. **Open** `http://localhost:5000` in your browser.
 
 ## Project Structure
 
@@ -70,7 +77,7 @@ A full-stack ordering and e-commerce platform built for O Souly, a Moroccan arti
 
 ## Screenshots
 
-Screenshots coming soon
+<!-- Add screenshots here -->
 
 ## License
 
