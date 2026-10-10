@@ -6,7 +6,7 @@ function createOrderRoutes(db) {
   const otpStore = new Map();
 
   // POST /api/orders/send-otp (mock SMS agent)
-  router.post('/send-otp', (req, res) => {
+  router.post('/send-otp', async (req, res) => {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ error: 'Phone is required.' });
     
@@ -21,22 +21,24 @@ function createOrderRoutes(db) {
   });
 
   // GET /api/orders/stats/summary — dashboard stats (admin only)
-  router.get('/stats/summary', authenticateToken, (req, res) => {
+  router.get('/stats/summary', authenticateToken, async (req, res) => {
     try {
-      const totalOrders = db.get('SELECT COUNT(*) as count FROM orders');
-      const pendingOrders = db.get("SELECT COUNT(*) as count FROM orders WHERE status = 'pending'");
-      const totalRevenue = db.get('SELECT COALESCE(SUM(total), 0) as sum FROM orders');
-      const totalProducts = db.get('SELECT COUNT(*) as count FROM products');
-      const todayOrders = db.get(
-        "SELECT COUNT(*) as count FROM orders WHERE date(created_at) = date('now')"
+      const totalOrders = await db.get('SELECT COUNT(*) as count FROM orders');
+      const pendingOrders = await db.get("SELECT COUNT(*) as count FROM orders WHERE status = 'pending'");
+      const totalRevenue = await db.get('SELECT COALESCE(SUM(total), 0) as sum FROM orders');
+      const totalProducts = await db.get('SELECT COUNT(*) as count FROM products');
+      
+      // Changed date('now') to CURRENT_DATE for Postgres compatibility
+      const todayOrders = await db.get(
+        "SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = CURRENT_DATE"
       );
 
       res.json({
-        totalOrders: totalOrders.count,
-        pendingOrders: pendingOrders.count,
+        totalOrders: parseInt(totalOrders.count),
+        pendingOrders: parseInt(pendingOrders.count),
         totalRevenue: Math.round(totalRevenue.sum * 100) / 100,
-        totalProducts: totalProducts.count,
-        todayOrders: todayOrders.count
+        totalProducts: parseInt(totalProducts.count),
+        todayOrders: parseInt(todayOrders.count)
       });
     } catch (err) {
       console.error(err);
@@ -45,7 +47,7 @@ function createOrderRoutes(db) {
   });
 
   // POST /api/orders — place order (public)
-  router.post('/', (req, res) => {
+  router.post('/', async (req, res) => {
     try {
       const { customer_name, customer_phone, customer_email, customer_address, customer_city, notes, items, otp, promoCode } = req.body;
 
@@ -81,7 +83,7 @@ function createOrderRoutes(db) {
       const validatedItems = [];
 
       for (const item of items) {
-        const product = db.get('SELECT * FROM products WHERE id = ? AND available = 1', [parseInt(item.product_id)]);
+        const product = await db.get('SELECT * FROM products WHERE id = ? AND available = 1', [parseInt(item.product_id)]);
         if (!product) {
           return res.status(400).json({ error: `Product not found or unavailable: ID ${item.product_id}` });
         }
@@ -96,7 +98,7 @@ function createOrderRoutes(db) {
       }
 
       // Apply Settings to Total
-      const settingsRow = db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1') || {};
+      const settingsRow = (await db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1')) || {};
       if (settingsRow.storeOpen === 0) {
         return res.status(400).json({ error: 'The store is currently closed.' });
       }
@@ -121,7 +123,8 @@ function createOrderRoutes(db) {
       let appliedPromo = null;
       let discountAmount = 0;
       if (promoCode) {
-        const promo = db.get('SELECT * FROM promotions WHERE code = ? COLLATE NOCASE AND active = 1', [promoCode.trim().toUpperCase()]);
+        // Changed COLLATE NOCASE to LOWER() for Postgres
+        const promo = await db.get('SELECT * FROM promotions WHERE LOWER(code) = LOWER(?) AND active = 1', [promoCode.trim()]);
         if (promo) {
           const notExpired = !promo.expiryDate || new Date(promo.expiryDate) >= new Date();
           const meetsMin = !promo.minimumOrder || subtotal >= promo.minimumOrder;
@@ -140,7 +143,7 @@ function createOrderRoutes(db) {
       const total = Math.round(finalTotal * 100) / 100;
 
       // Insert order using cleaned inputs
-      const orderResult = db.run(
+      const orderResult = await db.run(
         'INSERT INTO orders (customer_name, customer_phone, customer_email, customer_address, customer_city, notes, total) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [nameClean, phoneClean, emailClean, addressClean, cityClean, notesClean, total]
       );
@@ -149,31 +152,32 @@ function createOrderRoutes(db) {
 
       // Insert order items
       for (const item of validatedItems) {
-        db.run(
+        await db.run(
           'INSERT INTO order_items (order_id, product_id, product_name, quantity, price) VALUES (?, ?, ?, ?, ?)',
           [orderId, item.product_id, item.product_name, item.quantity, item.price]
         );
         // Decrement stock if trackStock is enabled
-        db.run(
-          'UPDATE products SET stock = MAX(0, stock - ?) WHERE id = ? AND trackStock = 1',
+        // Postgres uses GREATEST instead of MAX for scalar values
+        await db.run(
+          'UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ? AND trackStock = 1',
           [item.quantity, item.product_id]
         );
       }
 
       // Increment promo usage count if a promo was applied
       if (appliedPromo) {
-        db.run('UPDATE promotions SET usageCount = usageCount + 1 WHERE id = ?', [appliedPromo.id]);
+        await db.run('UPDATE promotions SET usageCount = usageCount + 1 WHERE id = ?', [appliedPromo.id]);
       }
 
       // Create notification for new order
-      const order = db.get('SELECT * FROM orders WHERE id = ?', [orderId]);
+      const order = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [orderId]);
       const notifMsg = `Nouvelle commande #${orderId} de ${nameClean} — ${total} MAD`;
-      db.run(
+      await db.run(
         'INSERT INTO notifications (type, message, orderId) VALUES (?, ?, ?)',
         ['new_order', notifMsg, orderId]
       );
 
-      const orderItems = db.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [orderId]);
+      const orderItems = await db.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [orderId]);
 
       otpStore.delete(phoneClean);
       res.status(201).json({ ...order, items: orderItems });
@@ -184,10 +188,10 @@ function createOrderRoutes(db) {
   });
 
   // GET /api/orders — list all orders (admin only)
-  router.get('/', authenticateToken, (req, res) => {
+  router.get('/', authenticateToken, async (req, res) => {
     try {
       const { status, page = 1, limit = 50 } = req.query;
-      let sql = 'SELECT * FROM orders';
+      let sql = 'SELECT *, whatsapplog AS "whatsappLog" FROM orders';
       const params = [];
 
       if (status) {
@@ -199,13 +203,17 @@ function createOrderRoutes(db) {
       sql += ` LIMIT ? OFFSET ?`;
       params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
 
-      const orders = db.all(sql, params);
+      const orders = await db.all(sql, params);
 
       // Attach items to each order
-      const ordersWithItems = orders.map(order => ({
-        ...order,
-        items: db.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [order.id])
-      }));
+      const ordersWithItems = [];
+      for (const order of orders) {
+        const items = await db.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [order.id]);
+        ordersWithItems.push({
+          ...order,
+          items
+        });
+      }
 
       // Count totals
       let countSql = 'SELECT COUNT(*) as total FROM orders';
@@ -214,13 +222,13 @@ function createOrderRoutes(db) {
         countSql += ' WHERE status = ?';
         countParams.push(status);
       }
-      const countResult = db.get(countSql, countParams);
+      const countResult = await db.get(countSql, countParams);
 
       res.json({
         orders: ordersWithItems,
-        total: countResult.total,
+        total: parseInt(countResult.total),
         page: parseInt(page),
-        pages: Math.ceil(countResult.total / parseInt(limit))
+        pages: Math.ceil(parseInt(countResult.total) / parseInt(limit))
       });
     } catch (err) {
       console.error(err);
@@ -229,12 +237,12 @@ function createOrderRoutes(db) {
   });
 
   // GET /api/orders/:id — single order (admin only)
-  router.get('/:id', authenticateToken, (req, res) => {
+  router.get('/:id', authenticateToken, async (req, res) => {
     try {
-      const order = db.get('SELECT * FROM orders WHERE id = ?', [parseInt(req.params.id)]);
+      const order = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [parseInt(req.params.id)]);
       if (!order) return res.status(404).json({ error: 'Order not found.' });
 
-      const items = db.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [order.id]);
+      const items = await db.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [order.id]);
       res.json({ ...order, items });
     } catch (err) {
       console.error(err);
@@ -243,7 +251,7 @@ function createOrderRoutes(db) {
   });
 
   // PUT /api/orders/:id/status — update order status (admin only)
-  router.put('/:id/status', authenticateToken, (req, res) => {
+  router.put('/:id/status', authenticateToken, async (req, res) => {
     try {
       const { status } = req.body;
       const validStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'];
@@ -252,12 +260,12 @@ function createOrderRoutes(db) {
         return res.status(400).json({ error: `Status must be one of: ${validStatuses.join(', ')}` });
       }
 
-      const existing = db.get('SELECT * FROM orders WHERE id = ?', [parseInt(req.params.id)]);
+      const existing = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [parseInt(req.params.id)]);
       if (!existing) return res.status(404).json({ error: 'Order not found.' });
 
-      db.run('UPDATE orders SET status = ? WHERE id = ?', [status, parseInt(req.params.id)]);
-      const updated = db.get('SELECT * FROM orders WHERE id = ?', [parseInt(req.params.id)]);
-      const items = db.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [updated.id]);
+      await db.run('UPDATE orders SET status = ? WHERE id = ?', [status, parseInt(req.params.id)]);
+      const updated = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [parseInt(req.params.id)]);
+      const items = await db.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [updated.id]);
 
       res.json({ ...updated, items });
     } catch (err) {
@@ -267,15 +275,15 @@ function createOrderRoutes(db) {
   });
 
   // PUT /api/orders/:id/admin-note — update admin note (admin only)
-  router.put('/:id/admin-note', authenticateToken, (req, res) => {
+  router.put('/:id/admin-note', authenticateToken, async (req, res) => {
     try {
       const { admin_note } = req.body;
-      const existing = db.get('SELECT * FROM orders WHERE id = ?', [parseInt(req.params.id)]);
+      const existing = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [parseInt(req.params.id)]);
       if (!existing) return res.status(404).json({ error: 'Order not found.' });
 
-      db.run('UPDATE orders SET admin_note = ? WHERE id = ?', [admin_note || '', parseInt(req.params.id)]);
-      const updated = db.get('SELECT * FROM orders WHERE id = ?', [parseInt(req.params.id)]);
-      const items = db.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [updated.id]);
+      await db.run('UPDATE orders SET admin_note = ? WHERE id = ?', [admin_note || '', parseInt(req.params.id)]);
+      const updated = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [parseInt(req.params.id)]);
+      const items = await db.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [updated.id]);
 
       res.json({ ...updated, items });
     } catch (err) {
@@ -285,13 +293,13 @@ function createOrderRoutes(db) {
   });
 
   // DELETE /api/orders/:id — delete order (admin only)
-  router.delete('/:id', authenticateToken, (req, res) => {
+  router.delete('/:id', authenticateToken, async (req, res) => {
     try {
-      const existing = db.get('SELECT * FROM orders WHERE id = ?', [parseInt(req.params.id)]);
+      const existing = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [parseInt(req.params.id)]);
       if (!existing) return res.status(404).json({ error: 'Order not found.' });
 
-      db.run('DELETE FROM order_items WHERE order_id = ?', [parseInt(req.params.id)]);
-      db.run('DELETE FROM orders WHERE id = ?', [parseInt(req.params.id)]);
+      await db.run('DELETE FROM order_items WHERE order_id = ?', [parseInt(req.params.id)]);
+      await db.run('DELETE FROM orders WHERE id = ?', [parseInt(req.params.id)]);
       res.json({ message: 'Order deleted.' });
     } catch (err) {
       console.error(err);
@@ -301,10 +309,10 @@ function createOrderRoutes(db) {
 
 
   // POST /api/orders/:id/whatsapp-log - Add to whatsapp log
-  router.post('/:id/whatsapp-log', authenticateToken, (req, res) => {
+  router.post('/:id/whatsapp-log', authenticateToken, async (req, res) => {
     try {
       const { templateType, messagePreview } = req.body;
-      const existing = db.get('SELECT * FROM orders WHERE id = ?', [parseInt(req.params.id)]);
+      const existing = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [parseInt(req.params.id)]);
       if (!existing) return res.status(404).json({ error: 'Order not found.' });
 
       let log = [];
@@ -320,7 +328,7 @@ function createOrderRoutes(db) {
         messagePreview: messagePreview ? messagePreview.substring(0, 100) : ''
       });
 
-      db.run('UPDATE orders SET whatsappLog = ? WHERE id = ?', [JSON.stringify(log), parseInt(req.params.id)]);
+      await db.run('UPDATE orders SET whatsappLog = ? WHERE id = ?', [JSON.stringify(log), parseInt(req.params.id)]);
       res.json({ message: 'Log added' });
     } catch (err) {
       console.error(err);

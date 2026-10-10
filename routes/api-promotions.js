@@ -5,12 +5,13 @@ function createPromotionRoutes(db) {
   const router = express.Router();
 
   // POST /api/promotions/validate — public: validate a promo code
-  router.post('/validate', (req, res) => {
+  router.post('/validate', async (req, res) => {
     try {
       const { code, cartTotal, cartProductIds = [] } = req.body;
       if (!code) return res.status(400).json({ error: 'Code is required.' });
 
-      const promo = db.get('SELECT * FROM promotions WHERE code = ? COLLATE NOCASE', [code.trim().toUpperCase()]);
+      // Changed COLLATE NOCASE to LOWER()
+      const promo = await db.get('SELECT id, code, type, value, minimumorder AS "minimumOrder", expirydate AS "expiryDate", active, scope, targetproducts AS "targetProducts", usagecount AS "usageCount", created_at FROM promotions WHERE LOWER(code) = LOWER(?)', [code.trim()]);
       if (!promo) return res.status(400).json({ error: 'Code invalide ou expiré.' });
       
       if (!promo.active) {
@@ -69,10 +70,10 @@ function createPromotionRoutes(db) {
   });
 
   // GET /api/promotions/available — public: check if any active promo codes exist
-  router.get('/available', (req, res) => {
+  router.get('/available', async (req, res) => {
     try {
       const now = new Date().toISOString().slice(0, 10);
-      const active = db.get(
+      const active = await db.get(
         "SELECT id FROM promotions WHERE active = 1 AND (expiryDate IS NULL OR expiryDate >= ?) LIMIT 1",
         [now]
       );
@@ -83,9 +84,9 @@ function createPromotionRoutes(db) {
   });
 
   // GET /api/promotions — list all (admin only)
-  router.get('/', authenticateToken, (req, res) => {
+  router.get('/', authenticateToken, async (req, res) => {
     try {
-      const promos = db.all('SELECT * FROM promotions ORDER BY created_at DESC');
+      const promos = await db.all('SELECT id, code, type, value, minimumorder AS "minimumOrder", expirydate AS "expiryDate", active, scope, targetproducts AS "targetProducts", usagecount AS "usageCount", created_at FROM promotions ORDER BY created_at DESC');
       res.json(promos);
     } catch (err) {
       console.error(err);
@@ -94,7 +95,7 @@ function createPromotionRoutes(db) {
   });
 
   // POST /api/promotions — create (admin only)
-  router.post('/', authenticateToken, (req, res) => {
+  router.post('/', authenticateToken, async (req, res) => {
     try {
       const { code, type, value, minimumOrder, expiryDate, active, scope, targetProducts } = req.body;
       if (!code || !type || value === undefined) {
@@ -104,7 +105,7 @@ function createPromotionRoutes(db) {
         return res.status(400).json({ error: 'Type must be percentage or fixed.' });
       }
       const cleanCode = code.trim().toUpperCase();
-      const result = db.run(
+      const result = await db.run(
         'INSERT INTO promotions (code, type, value, minimumOrder, expiryDate, active, scope, targetProducts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [
           cleanCode, 
@@ -117,10 +118,10 @@ function createPromotionRoutes(db) {
           JSON.stringify(targetProducts || [])
         ]
       );
-      const newPromo = db.get('SELECT * FROM promotions WHERE id = ?', [result.lastInsertRowid]);
+      const newPromo = await db.get('SELECT id, code, type, value, minimumorder AS "minimumOrder", expirydate AS "expiryDate", active, scope, targetproducts AS "targetProducts", usagecount AS "usageCount", created_at FROM promotions WHERE id = ?', [result.lastInsertRowid]);
       res.status(201).json(newPromo);
     } catch (err) {
-      if (err.message && err.message.includes('UNIQUE')) {
+      if (err.message && err.message.toLowerCase().includes('unique')) {
         return res.status(400).json({ error: 'Ce code existe déjà.' });
       }
       console.error(err);
@@ -129,12 +130,12 @@ function createPromotionRoutes(db) {
   });
 
   // PUT /api/promotions/:id/toggle — activate/deactivate (admin only)
-  router.put('/:id/toggle', authenticateToken, (req, res) => {
+  router.put('/:id/toggle', authenticateToken, async (req, res) => {
     try {
-      const promo = db.get('SELECT * FROM promotions WHERE id = ?', [parseInt(req.params.id)]);
+      const promo = await db.get('SELECT id, code, type, value, minimumorder AS "minimumOrder", expirydate AS "expiryDate", active, scope, targetproducts AS "targetProducts", usagecount AS "usageCount", created_at FROM promotions WHERE id = ?', [parseInt(req.params.id)]);
       if (!promo) return res.status(404).json({ error: 'Promotion not found.' });
-      db.run('UPDATE promotions SET active = ? WHERE id = ?', [promo.active ? 0 : 1, promo.id]);
-      const updated = db.get('SELECT * FROM promotions WHERE id = ?', [promo.id]);
+      await db.run('UPDATE promotions SET active = ? WHERE id = ?', [promo.active ? 0 : 1, promo.id]);
+      const updated = await db.get('SELECT id, code, type, value, minimumorder AS "minimumOrder", expirydate AS "expiryDate", active, scope, targetproducts AS "targetProducts", usagecount AS "usageCount", created_at FROM promotions WHERE id = ?', [promo.id]);
       res.json(updated);
     } catch (err) {
       console.error(err);
@@ -143,11 +144,11 @@ function createPromotionRoutes(db) {
   });
 
   // DELETE /api/promotions/:id — delete (admin only)
-  router.delete('/:id', authenticateToken, (req, res) => {
+  router.delete('/:id', authenticateToken, async (req, res) => {
     try {
-      const promo = db.get('SELECT * FROM promotions WHERE id = ?', [parseInt(req.params.id)]);
+      const promo = await db.get('SELECT * FROM promotions WHERE id = ?', [parseInt(req.params.id)]);
       if (!promo) return res.status(404).json({ error: 'Promotion not found.' });
-      db.run('DELETE FROM promotions WHERE id = ?', [promo.id]);
+      await db.run('DELETE FROM promotions WHERE id = ?', [promo.id]);
       res.json({ message: 'Promotion deleted.' });
     } catch (err) {
       console.error(err);

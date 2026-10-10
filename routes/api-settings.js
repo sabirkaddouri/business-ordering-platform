@@ -5,9 +5,9 @@ function createSettingsRoutes(db) {
   const router = express.Router();
 
   // GET /api/settings/public - public route
-  router.get('/public', (req, res) => {
+  router.get('/public', async (req, res) => {
     try {
-      const row = db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1');
+      const row = await db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1');
       if (!row) {
         return res.json({
           description: '',
@@ -31,26 +31,27 @@ function createSettingsRoutes(db) {
           facebookLink: ''
         });
       }
+      const val = (key) => row[key] !== undefined ? row[key] : row[key.toLowerCase()];
       res.json({
-        description: row.description || '',
-        address: row.address || '',
-        googleMapsLink: row.googleMapsLink || '',
-        phone: row.phone || '',
-        openHours: row.openHours || '',
-        paymentTerms: row.paymentTerms || '',
-        deliveryZones: row.deliveryZones || '',
-        siteName: row.siteName || '',
-        minOrderAmount: row.minOrderAmount || 0,
-        deliveryFee: row.deliveryFee || 0,
-        freeDeliveryThreshold: row.freeDeliveryThreshold || null,
-        taxEnabled: row.taxEnabled === 1,
-        taxRate: row.taxRate || 0,
-        storeOpen: row.storeOpen !== 0,
-        storeClosedMessage: row.storeClosedMessage || '',
-        orderWhatsapp: row.orderWhatsapp || '',
-        orderEmail: row.orderEmail || '',
-        instagramLink: row.instagramLink || '',
-        facebookLink: row.facebookLink || ''
+        description: val('description') || '',
+        address: val('address') || '',
+        googleMapsLink: val('googleMapsLink') || '',
+        phone: val('phone') || '',
+        openHours: val('openHours') || '',
+        paymentTerms: val('paymentTerms') || '',
+        deliveryZones: val('deliveryZones') || '',
+        siteName: val('siteName') || '',
+        minOrderAmount: val('minOrderAmount') || 0,
+        deliveryFee: val('deliveryFee') || 0,
+        freeDeliveryThreshold: val('freeDeliveryThreshold') || null,
+        taxEnabled: val('taxEnabled') === 1,
+        taxRate: val('taxRate') || 0,
+        storeOpen: val('storeOpen') !== 0,
+        storeClosedMessage: val('storeClosedMessage') || '',
+        orderWhatsapp: val('orderWhatsapp') || '',
+        orderEmail: val('orderEmail') || '',
+        instagramLink: val('instagramLink') || '',
+        facebookLink: val('facebookLink') || ''
       });
     } catch (err) {
       console.error(err);
@@ -59,14 +60,14 @@ function createSettingsRoutes(db) {
   });
 
   // POST /api/settings - protected route to save settings
-  router.post('/', authenticateToken, (req, res) => {
+  router.post('/', authenticateToken, async (req, res) => {
     try {
       const body = req.body;
 
-      const countRow = db.get('SELECT COUNT(*) as count FROM settings');
-      if (countRow.count === 0) {
+      const countRow = await db.get('SELECT COUNT(*) as count FROM settings');
+      if (parseInt(countRow.count) === 0) {
         // No settings row yet — insert with provided values
-        db.run(
+        await db.run(
           `INSERT INTO settings (
             description, address, googleMapsLink, phone, openHours, paymentTerms, deliveryZones,
             siteName, minOrderAmount, deliveryFee, freeDeliveryThreshold,
@@ -88,10 +89,15 @@ function createSettingsRoutes(db) {
         );
       } else {
         // Existing row — fetch it first, then merge only what was sent
-        const existing = db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1') || {};
-        const m = (key, fallback) => body[key] !== undefined ? body[key] : (existing[key] !== undefined ? existing[key] : fallback);
+        const existing = (await db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1')) || {};
+        const m = (key, fallback) => {
+          if (body[key] !== undefined) return body[key];
+          if (existing[key] !== undefined) return existing[key];
+          if (existing[key.toLowerCase()] !== undefined) return existing[key.toLowerCase()];
+          return fallback;
+        };
 
-        db.run(
+        await db.run(
           `UPDATE settings SET
             description = ?, address = ?, googleMapsLink = ?, phone = ?, openHours = ?,
             paymentTerms = ?, deliveryZones = ?, siteName = ?,
@@ -128,16 +134,17 @@ function createSettingsRoutes(db) {
 
 
   // GET /api/settings/whatsapp - protected route to get whatsapp settings
-  router.get('/whatsapp', authenticateToken, (req, res) => {
+  router.get('/whatsapp', authenticateToken, async (req, res) => {
     try {
-      const row = db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1') || {};
+      const row = (await db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1')) || {};
+      const val = (key) => row[key] !== undefined ? row[key] : row[key.toLowerCase()];
       res.json({
-        whatsappAdminNumber: row.whatsappAdminNumber || '',
-        whatsappEnabled: row.whatsappEnabled === 1,
-        whatsappTemplateConfirmation: row.whatsappTemplateConfirmation || '',
-        whatsappTemplateShipped: row.whatsappTemplateShipped || '',
-        whatsappTemplateDelivered: row.whatsappTemplateDelivered || '',
-        whatsappTemplateCancelled: row.whatsappTemplateCancelled || ''
+        whatsappAdminNumber: val('whatsappAdminNumber') || '',
+        whatsappEnabled: val('whatsappEnabled') === 1,
+        whatsappTemplateConfirmation: val('whatsappTemplateConfirmation') || '',
+        whatsappTemplateShipped: val('whatsappTemplateShipped') || '',
+        whatsappTemplateDelivered: val('whatsappTemplateDelivered') || '',
+        whatsappTemplateCancelled: val('whatsappTemplateCancelled') || ''
       });
     } catch (err) {
       console.error(err);

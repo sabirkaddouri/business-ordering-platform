@@ -54,9 +54,9 @@ function createProductRoutes(db) {
   const router = express.Router();
 
   // GET /api/products/meta/categories — list all categories ordered by display_order (public, legacy endpoint)
-  router.get('/meta/categories', (req, res) => {
+  router.get('/meta/categories', async (req, res) => {
     try {
-      const categories = db.all('SELECT * FROM categories ORDER BY display_order ASC, name ASC');
+      const categories = await db.all('SELECT * FROM categories ORDER BY display_order ASC, name ASC');
       res.json(categories);
     } catch (err) {
       console.error(err);
@@ -65,10 +65,10 @@ function createProductRoutes(db) {
   });
 
   // GET /api/products — list all (public)
-  router.get('/', (req, res) => {
+  router.get('/', async (req, res) => {
     try {
       const { category, categoryId, categorySlug, featured, available } = req.query;
-      let sql = `SELECT p.*, c.name as category_name, c.icon as category_icon 
+      let sql = `SELECT p.*, p.trackstock as "trackStock", c.name as category_name, c.icon as category_icon 
                  FROM products p 
                  LEFT JOIN categories c ON p.category_id = c.id`;
       const conditions = [];
@@ -103,7 +103,7 @@ function createProductRoutes(db) {
       }
       sql += ' ORDER BY p.featured DESC, p.created_at DESC';
 
-      const products = db.all(sql, params);
+      const products = await db.all(sql, params);
       res.json(products);
     } catch (err) {
       console.error(err);
@@ -112,10 +112,10 @@ function createProductRoutes(db) {
   });
 
   // GET /api/products/:id — single product (public)
-  router.get('/:id', (req, res) => {
+  router.get('/:id', async (req, res) => {
     try {
-      const product = db.get(
-        `SELECT p.*, c.name as category_name, c.icon as category_icon 
+      const product = await db.get(
+        `SELECT p.*, p.trackstock as "trackStock", c.name as category_name, c.icon as category_icon 
          FROM products p 
          LEFT JOIN categories c ON p.category_id = c.id 
          WHERE p.id = ?`,
@@ -131,7 +131,7 @@ function createProductRoutes(db) {
   });
 
   // POST /api/products — create (admin only)
-  router.post('/', authenticateToken, upload.single('image'), (req, res) => {
+  router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
     try {
       const { name, description, price, category_id, featured, available, stock, trackStock } = req.body;
 
@@ -152,12 +152,12 @@ function createProductRoutes(db) {
       const image = req.file 
         ? (req.file.path && req.file.path.startsWith('http') ? req.file.path : req.file.filename) 
         : 'default.jpg';
-      const result = db.run(
+      const result = await db.run(
         'INSERT INTO products (name, description, price, category_id, image, featured, available, stock, trackStock) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [nameClean, description || '', priceNum, parseInt(category_id) || null, image, featured ? 1 : 0, available !== undefined ? parseInt(available) : 1, parseInt(stock) || 0, trackStock ? 1 : 0]
       );
 
-      const newProduct = db.get('SELECT * FROM products WHERE id = ?', [result.lastInsertRowid]);
+      const newProduct = await db.get('SELECT * FROM products WHERE id = ?', [result.lastInsertRowid]);
       res.status(201).json(newProduct);
     } catch (err) {
       console.error(err);
@@ -166,9 +166,9 @@ function createProductRoutes(db) {
   });
 
   // PUT /api/products/:id — update (admin only)
-  router.put('/:id', authenticateToken, upload.single('image'), (req, res) => {
+  router.put('/:id', authenticateToken, upload.single('image'), async (req, res) => {
     try {
-      const existing = db.get('SELECT * FROM products WHERE id = ?', [parseInt(req.params.id)]);
+      const existing = await db.get('SELECT * FROM products WHERE id = ?', [parseInt(req.params.id)]);
       if (!existing) return res.status(404).json({ error: 'Product not found.' });
 
       const { name, description, price, category_id, featured, available, stock, trackStock } = req.body;
@@ -198,7 +198,7 @@ function createProductRoutes(db) {
 
       const priceVal = price ? parseFloat(price) : existing.price;
 
-      db.run(
+      await db.run(
         `UPDATE products SET name=?, description=?, price=?, category_id=?, image=?, featured=?, available=?, stock=?, trackStock=? WHERE id=?`,
         [
           name ? name.trim() : existing.name,
@@ -214,8 +214,8 @@ function createProductRoutes(db) {
         ]
       );
 
-      const updated = db.get(
-        `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`,
+      const updated = await db.get(
+        `SELECT p.*, p.trackstock as "trackStock", c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`,
         [parseInt(req.params.id)]
       );
       res.json(updated);
@@ -226,9 +226,9 @@ function createProductRoutes(db) {
   });
 
   // DELETE /api/products/:id — delete (admin only)
-  router.delete('/:id', authenticateToken, (req, res) => {
+  router.delete('/:id', authenticateToken, async (req, res) => {
     try {
-      const existing = db.get('SELECT * FROM products WHERE id = ?', [parseInt(req.params.id)]);
+      const existing = await db.get('SELECT * FROM products WHERE id = ?', [parseInt(req.params.id)]);
       if (!existing) return res.status(404).json({ error: 'Product not found.' });
 
       // Delete product image if it's local
@@ -243,7 +243,7 @@ function createProductRoutes(db) {
         }
       }
 
-      db.run('DELETE FROM products WHERE id = ?', [parseInt(req.params.id)]);
+      await db.run('DELETE FROM products WHERE id = ?', [parseInt(req.params.id)]);
       res.json({ message: 'Product deleted.' });
     } catch (err) {
       console.error(err);

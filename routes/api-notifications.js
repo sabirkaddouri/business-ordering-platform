@@ -5,13 +5,13 @@ function createNotificationRoutes(db) {
   const router = express.Router();
 
   // GET /api/notifications — list recent notifications (admin only)
-  router.get('/', authenticateToken, (req, res) => {
+  router.get('/', authenticateToken, async (req, res) => {
     try {
-      const notifications = db.all(
-        'SELECT * FROM notifications ORDER BY createdAt DESC LIMIT 50'
+      const notifications = await db.all(
+        'SELECT *, createdat AS "createdAt", orderid AS "orderId" FROM notifications ORDER BY createdat DESC LIMIT 50'
       );
-      const unreadCount = db.get('SELECT COUNT(*) as count FROM notifications WHERE read = 0');
-      res.json({ notifications, unreadCount: unreadCount.count });
+      const unreadCount = await db.get('SELECT COUNT(*) as count FROM notifications WHERE read = 0');
+      res.json({ notifications, unreadCount: parseInt(unreadCount.count) });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Server error.' });
@@ -19,9 +19,9 @@ function createNotificationRoutes(db) {
   });
 
   // PUT /api/notifications/read-all — mark all as read (admin only)
-  router.put('/read-all', authenticateToken, (req, res) => {
+  router.put('/read-all', authenticateToken, async (req, res) => {
     try {
-      db.run('UPDATE notifications SET read = 1 WHERE read = 0');
+      await db.run('UPDATE notifications SET read = 1 WHERE read = 0');
       res.json({ message: 'All notifications marked as read.' });
     } catch (err) {
       console.error(err);
@@ -30,9 +30,9 @@ function createNotificationRoutes(db) {
   });
 
   // PUT /api/notifications/:id/read — mark one as read (admin only)
-  router.put('/:id/read', authenticateToken, (req, res) => {
+  router.put('/:id/read', authenticateToken, async (req, res) => {
     try {
-      db.run('UPDATE notifications SET read = 1 WHERE id = ?', [parseInt(req.params.id)]);
+      await db.run('UPDATE notifications SET read = 1 WHERE id = ?', [parseInt(req.params.id)]);
       res.json({ message: 'Notification marked as read.' });
     } catch (err) {
       console.error(err);
