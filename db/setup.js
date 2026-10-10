@@ -1,78 +1,49 @@
-const initSqlJs = require('sql.js');
+const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-const path = require('path');
-const fs = require('fs');
 
-// Use process.env.SQLITE_DB_PATH if set, so DB file can be stored on a persistent volume in production (e.g. Railway)
-const DB_PATH = process.env.SQLITE_DB_PATH || path.join(__dirname, 'store.db');
-
-let db = null;
+let dbPool = null;
+let helperInstance = null;
 
 async function initDatabase() {
-  const SQL = await initSqlJs();
-
-  // Load existing database or create new one
-  if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    const tempDb = new SQL.Database(fileBuffer);
-    let needsMigration = false;
-    try {
-      const checkCupcakes = tempDb.exec("SELECT COUNT(*) as count FROM categories WHERE name = 'Cupcakes'");
-      if (checkCupcakes[0] && checkCupcakes[0].values[0][0] > 0) {
-        needsMigration = true;
-      }
-    } catch (e) {
-      // Safe to ignore
-    } finally {
-      tempDb.close();
-    }
-
-    if (needsMigration) {
-      console.log('🔄 Old database detected. Migrating to Kawthar Boulangerie Marrakech schema...');
-      try {
-        fs.unlinkSync(DB_PATH);
-      } catch (err) {
-        console.error('Failed to delete old DB, will try to clear manually', err);
-      }
-      db = new SQL.Database();
-    } else {
-      db = new SQL.Database(fileBuffer);
-    }
-  } else {
-    db = new SQL.Database();
-  }
+  dbPool = new Pool({
+    connectionString: process.env.DATABASE_URL
+  });
+  
+  const DbHelper = require('./helper');
+  const db = new DbHelper(dbPool);
+  helperInstance = db;
 
   // Create tables
-  db.run(`
+  await db.run(`
     CREATE TABLE IF NOT EXISTS admin (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT NOW()
     )
   `);
 
-  db.run(`
+  await db.run(`
     CREATE TABLE IF NOT EXISTS categories (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT UNIQUE NOT NULL,
       slug TEXT UNIQUE,
       icon TEXT DEFAULT '🍰',
       description TEXT,
       display_order INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT NOW()
     )
   `);
 
   // Migration: Add new columns to categories if they don't exist
-  try { db.run("ALTER TABLE categories ADD COLUMN slug TEXT"); } catch(e) {}
-  try { db.run("ALTER TABLE categories ADD COLUMN description TEXT"); } catch(e) {}
-  try { db.run("ALTER TABLE categories ADD COLUMN display_order INTEGER DEFAULT 0"); } catch(e) {}
-  try { db.run("ALTER TABLE categories ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch(e) {}
+  try { await db.run("ALTER TABLE categories ADD COLUMN slug TEXT"); } catch(e) {}
+  try { await db.run("ALTER TABLE categories ADD COLUMN description TEXT"); } catch(e) {}
+  try { await db.run("ALTER TABLE categories ADD COLUMN display_order INTEGER DEFAULT 0"); } catch(e) {}
+  try { await db.run("ALTER TABLE categories ADD COLUMN created_at TIMESTAMP DEFAULT NOW()"); } catch(e) {}
 
-  db.run(`
+  await db.run(`
     CREATE TABLE IF NOT EXISTS products (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT,
       price REAL NOT NULL,
@@ -82,18 +53,18 @@ async function initDatabase() {
       available INTEGER DEFAULT 1,
       stock INTEGER DEFAULT 0,
       trackStock INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW(),
       FOREIGN KEY (category_id) REFERENCES categories(id)
     )
   `);
 
   // Migration: Add stock columns to products if not exists
-  try { db.run('ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 0'); } catch(e) {}
-  try { db.run('ALTER TABLE products ADD COLUMN trackStock INTEGER DEFAULT 0'); } catch(e) {}
+  try { await db.run('ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 0'); } catch(e) {}
+  try { await db.run('ALTER TABLE products ADD COLUMN trackStock INTEGER DEFAULT 0'); } catch(e) {}
 
-  db.run(`
+  await db.run(`
     CREATE TABLE IF NOT EXISTS orders (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       customer_name TEXT NOT NULL,
       customer_phone TEXT NOT NULL,
       customer_email TEXT,
@@ -101,27 +72,19 @@ async function initDatabase() {
       notes TEXT,
       status TEXT DEFAULT 'pending',
       total REAL NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT NOW()
     )
   `);
 
   // Migration: Add admin_note column if not exists
-  try {
-    db.run("ALTER TABLE orders ADD COLUMN admin_note TEXT DEFAULT ''");
-  } catch (e) {
-    // Column already exists, safe to ignore
-  }
+  try { await db.run("ALTER TABLE orders ADD COLUMN admin_note TEXT DEFAULT ''"); } catch (e) {}
 
-  // Migration: Add customer_city column if not exists (new orders will have it; existing orders get NULL)
-  try {
-    db.run("ALTER TABLE orders ADD COLUMN customer_city TEXT DEFAULT ''");
-  } catch (e) {
-    // Column already exists, safe to ignore
-  }
+  // Migration: Add customer_city column if not exists
+  try { await db.run("ALTER TABLE orders ADD COLUMN customer_city TEXT DEFAULT ''"); } catch (e) {}
 
-  db.run(`
+  await db.run(`
     CREATE TABLE IF NOT EXISTS order_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       order_id INTEGER NOT NULL,
       product_id INTEGER NOT NULL,
       product_name TEXT NOT NULL,
@@ -132,9 +95,9 @@ async function initDatabase() {
     )
   `);
 
-  db.run(`
+  await db.run(`
     CREATE TABLE IF NOT EXISTS settings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       description TEXT,
       address TEXT,
       googleMapsLink TEXT,
@@ -166,16 +129,14 @@ async function initDatabase() {
   ];
   for (const colDef of newCols) {
     try {
-      db.run(`ALTER TABLE settings ADD COLUMN ${colDef}`);
-    } catch (e) {
-      // Column already exists, safe to ignore
-    }
+      await db.run(`ALTER TABLE settings ADD COLUMN ${colDef}`);
+    } catch (e) {}
   }
 
   // Promotions table
-  db.run(`
+  await db.run(`
     CREATE TABLE IF NOT EXISTS promotions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       code TEXT UNIQUE NOT NULL,
       type TEXT NOT NULL DEFAULT 'percentage',
       value REAL NOT NULL DEFAULT 0,
@@ -185,38 +146,41 @@ async function initDatabase() {
       usageCount INTEGER DEFAULT 0,
       scope TEXT DEFAULT 'all',
       targetProducts TEXT DEFAULT '[]',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT NOW()
     )
   `);
 
-  try { db.run("ALTER TABLE promotions ADD COLUMN active INTEGER DEFAULT 1"); } catch (e) {}
-  try { db.run("ALTER TABLE promotions ADD COLUMN scope TEXT DEFAULT 'all'"); } catch (e) {}
-  try { db.run("ALTER TABLE promotions ADD COLUMN targetProducts TEXT DEFAULT '[]'"); } catch (e) {}
-
+  try { await db.run("ALTER TABLE promotions ADD COLUMN active INTEGER DEFAULT 1"); } catch (e) {}
+  try { await db.run("ALTER TABLE promotions ADD COLUMN scope TEXT DEFAULT 'all'"); } catch (e) {}
+  try { await db.run("ALTER TABLE promotions ADD COLUMN targetProducts TEXT DEFAULT '[]'"); } catch (e) {}
 
   // Notifications table
-  db.run(`
+  await db.run(`
     CREATE TABLE IF NOT EXISTS notifications (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       type TEXT DEFAULT 'new_order',
       message TEXT NOT NULL,
       orderId INTEGER,
       read INTEGER DEFAULT 0,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      createdAt TIMESTAMP DEFAULT NOW()
     )
   `);
 
   // Seed admin if not exists
-  const adminCount = db.exec('SELECT COUNT(*) as count FROM admin');
-  if (adminCount[0].values[0][0] === 0) {
-    const hashedPassword = bcrypt.hashSync('admin123', 10);
-    db.run('INSERT INTO admin (username, password) VALUES (?, ?)', ['admin', hashedPassword]);
-    console.log('✅ Default admin created (admin / admin123)');
+  const adminCount = await db.get('SELECT COUNT(*) as count FROM admin');
+  if (parseInt(adminCount.count) === 0) {
+    if (!process.env.ADMIN_PASSWORD) {
+      throw new Error('FATAL ERROR: ADMIN_PASSWORD environment variable is not set. A secure password must be provided to seed the initial admin account.');
+    }
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const hashedPassword = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
+    await db.run('INSERT INTO admin (username, password) VALUES (?, ?)', [adminUsername, hashedPassword]);
+    console.log(`✅ Admin account created (${adminUsername})`);
   }
 
   // Seed O Souly categories if table is empty
-  const catCount = db.exec('SELECT COUNT(*) as count FROM categories');
-  if (catCount[0].values[0][0] === 0) {
+  const catCount = await db.get('SELECT COUNT(*) as count FROM categories');
+  if (parseInt(catCount.count) === 0) {
     const categories = [
       ['Miels & Tartinades',    'miels-tartinades',    '🍯', 'Miels artisanaux et tartinades 100% naturelles', 1],
       ['Huiles Extra Vierge',   'huiles-extra-vierge', '🫒', "Huiles d'olive extra vierge du Maroc", 2],
@@ -225,7 +189,7 @@ async function initDatabase() {
       ['Cosmétiques',           'cosmetiques',         '🧴', 'Cosmétiques naturels du terroir marocain', 5]
     ];
     for (const [name, slug, icon, description, display_order] of categories) {
-      db.run(
+      await db.run(
         'INSERT INTO categories (name, slug, icon, description, display_order) VALUES (?, ?, ?, ?, ?)',
         [name, slug, icon, description, display_order]
       );
@@ -233,7 +197,7 @@ async function initDatabase() {
     console.log('✅ O Souly categories seeded');
   } else {
     // Migration: backfill slugs for existing categories that don't have one
-    const catsWithoutSlug = db.all ? db.all("SELECT id, name FROM categories WHERE slug IS NULL OR slug = ''") : [];
+    const catsWithoutSlug = await db.all("SELECT id, name FROM categories WHERE slug IS NULL OR slug = ''");
     if (catsWithoutSlug) {
       for (const cat of catsWithoutSlug) {
         const slug = cat.name
@@ -241,14 +205,14 @@ async function initDatabase() {
           .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-|-$/g, '');
-        db.run('UPDATE categories SET slug = ? WHERE id = ?', [slug, cat.id]);
+        await db.run('UPDATE categories SET slug = ? WHERE id = ?', [slug, cat.id]);
       }
     }
   }
 
   // Seed products if not exists
-  const prodCount = db.exec('SELECT COUNT(*) as count FROM products');
-  if (prodCount[0].values[0][0] === 0) {
+  const prodCount = await db.get('SELECT COUNT(*) as count FROM products');
+  if (parseInt(prodCount.count) === 0) {
     const products = [
       ['Cornes de Gazelle', 'Traditional Moroccan pastry with sweet almond paste and orange blossom water', 15.00, 1, 'default.jpg', 1],
       ['Briouates aux Amandes', 'Crispy sweet pastries folded into triangles, stuffed with almond paste and coated in pure honey', 12.00, 1, 'default.jpg', 1],
@@ -266,42 +230,35 @@ async function initDatabase() {
       ['Seasonal Almond Fruit Tart', 'Fresh seasonal fruits on a rich almond cream baked in a sweet crust', 35.00, 6, 'default.jpg', 1]
     ];
     for (const p of products) {
-      db.run('INSERT INTO products (name, description, price, category_id, image, featured) VALUES (?, ?, ?, ?, ?, ?)', p);
+      await db.run('INSERT INTO products (name, description, price, category_id, image, featured) VALUES (?, ?, ?, ?, ?, ?)', p);
     }
     console.log('✅ Sample products seeded');
   }
 
-
   // Migration: Add WhatsApp settings fields
   try {
-    db.run("ALTER TABLE settings ADD COLUMN whatsappAdminNumber TEXT DEFAULT ''");
-    db.run("ALTER TABLE settings ADD COLUMN whatsappEnabled INTEGER DEFAULT 1");
-    db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateConfirmation TEXT DEFAULT ''");
-    db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateShipped TEXT DEFAULT ''");
-    db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateDelivered TEXT DEFAULT ''");
-    db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateCancelled TEXT DEFAULT ''");
+    await db.run("ALTER TABLE settings ADD COLUMN whatsappAdminNumber TEXT DEFAULT ''");
+    await db.run("ALTER TABLE settings ADD COLUMN whatsappEnabled INTEGER DEFAULT 1");
+    await db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateConfirmation TEXT DEFAULT ''");
+    await db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateShipped TEXT DEFAULT ''");
+    await db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateDelivered TEXT DEFAULT ''");
+    await db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateCancelled TEXT DEFAULT ''");
   } catch(e) {}
 
   // Migration: Add whatsappLog to orders
   try {
-    db.run("ALTER TABLE orders ADD COLUMN whatsappLog TEXT DEFAULT '[]'");
+    await db.run("ALTER TABLE orders ADD COLUMN whatsappLog TEXT DEFAULT '[]'");
   } catch(e) {}
 
-  // Save to disk
-  saveDatabase();
-
-  return db;
+  return dbPool; // return the connected Pool so server.js can wrap it
 }
 
 function saveDatabase() {
-  if (!db) return;
-  const data = db.export();
-  const buffer = Buffer.from(data);
-  fs.writeFileSync(DB_PATH, buffer);
+  // No-op for postgres
 }
 
 function getDb() {
-  return db;
+  return helperInstance;
 }
 
-module.exports = { initDatabase, saveDatabase, getDb, DB_PATH };
+module.exports = { initDatabase, saveDatabase, getDb };

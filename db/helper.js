@@ -1,24 +1,22 @@
-/**
- * Helper wrapper around sql.js to provide a simpler API
- * similar to better-sqlite3 for our route files.
- */
+const { Pool } = require('pg');
+
 class DbHelper {
-  constructor(db, saveFn) {
-    this.db = db;
-    this.saveFn = saveFn;
+  constructor(pool) {
+    this.pool = pool;
+  }
+
+  // Convert ? to $1, $2, etc.
+  _convertSql(sql) {
+    let i = 1;
+    return sql.replace(/\?/g, () => `$${i++}`);
   }
 
   /** Run a query and return all matching rows as objects */
-  all(sql, params = []) {
+  async all(sql, params = []) {
     try {
-      const stmt = this.db.prepare(sql);
-      if (params.length > 0) stmt.bind(params);
-      const rows = [];
-      while (stmt.step()) {
-        rows.push(stmt.getAsObject());
-      }
-      stmt.free();
-      return rows;
+      const convertedSql = this._convertSql(sql);
+      const res = await this.pool.query(convertedSql, params);
+      return res.rows;
     } catch (err) {
       console.error('DB all() error:', err.message, sql);
       throw err;
@@ -26,16 +24,11 @@ class DbHelper {
   }
 
   /** Run a query and return the first matching row as an object, or null */
-  get(sql, params = []) {
+  async get(sql, params = []) {
     try {
-      const stmt = this.db.prepare(sql);
-      if (params.length > 0) stmt.bind(params);
-      let row = null;
-      if (stmt.step()) {
-        row = stmt.getAsObject();
-      }
-      stmt.free();
-      return row;
+      const convertedSql = this._convertSql(sql);
+      const res = await this.pool.query(convertedSql, params);
+      return res.rows.length > 0 ? res.rows[0] : null;
     } catch (err) {
       console.error('DB get() error:', err.message, sql);
       throw err;
@@ -43,20 +36,34 @@ class DbHelper {
   }
 
   /** Run a statement (INSERT/UPDATE/DELETE) and return { lastInsertRowid, changes } */
-  run(sql, params = []) {
+  async run(sql, params = []) {
     try {
-      // sql.js cannot bind undefined — convert to null
+      let convertedSql = this._convertSql(sql);
+      
+      // pg requires RETURNING id for last insert row id
+      const isInsert = convertedSql.trim().toUpperCase().startsWith('INSERT');
+      if (isInsert && !convertedSql.toUpperCase().includes('RETURNING')) {
+        convertedSql += ' RETURNING id';
+      }
+
+      // convert undefined to null as pg requires
       const safeParams = params.map(v => v === undefined ? null : v);
-      this.db.run(sql, safeParams);
-      const lastId = this.db.exec('SELECT last_insert_rowid() as id');
-      const changes = this.db.getRowsModified();
-      this.saveFn(); // persist to disk
+      
+      const res = await this.pool.query(convertedSql, safeParams);
+      
+      let lastInsertRowid = null;
+      if (isInsert && res.rows.length > 0) {
+        lastInsertRowid = res.rows[0].id;
+      }
+
       return {
-        lastInsertRowid: lastId.length > 0 ? lastId[0].values[0][0] : null,
-        changes
+        lastInsertRowid,
+        changes: res.rowCount
       };
     } catch (err) {
-      console.error('DB run() error:', err.message, sql);
+      if (!err.message.includes('already exists')) {
+        console.error('DB run() error:', err.message, sql);
+      }
       throw err;
     }
   }
