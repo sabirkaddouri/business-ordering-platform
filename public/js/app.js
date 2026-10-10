@@ -1,5 +1,5 @@
 /* ========================================
-   Sweet Delights — Customer Storefront JS
+   Shop Template — Customer Storefront JS
    ======================================== */
 
 const API = '';
@@ -57,7 +57,7 @@ function applyShopSettings() {
   const settings = window.shopSettings || {};
   
   // 1. Phone number
-  const phoneVal = settings.phone || "+212 6 61 26 95 36";
+  const phoneVal = settings.phone || "+212 6 00 00 00 00";
   const phoneEl = document.querySelector('[data-i18n="contact.c1Desc"]');
   if (phoneEl) phoneEl.textContent = phoneVal;
   
@@ -69,7 +69,7 @@ function applyShopSettings() {
   }
   
   // 2. Address & Google Maps Link
-  const addrVal = settings.address || "Rue Lieutenant Lamure, Résidence Palmera,\nGueliz, Marrakech, Maroc";
+  const addrVal = settings.address || "Your Street, Your City,\nYour Country";
   const addrEl = document.querySelector('[data-i18n="contact.c2Desc"]');
   if (addrEl) {
     const displayAddr = addrVal.replace(/\n/g, '<br>');
@@ -81,7 +81,7 @@ function applyShopSettings() {
   }
   
   // 3. Shop description
-  const descVal = settings.description || "O Souly est née d'un amour profond pour les produits du terroir marocain. Chaque produit est sélectionné avec soin — 100% naturel, sans additifs, fabriqué selon un savoir-faire artisanal transmis de génération en génération. Notre mission est simple : vous apporter la nature du Maroc, directement chez vous.";
+  const descVal = settings.description || "[Shop Name] est née d'un amour profond pour les produits du terroir marocain. Chaque produit est sélectionné avec soin — 100% naturel, sans additifs, fabriqué selon un savoir-faire artisanal transmis de génération en génération. Notre mission est simple : vous apporter la nature du Maroc, directement chez vous.";
   
   const heroSubEl = document.querySelector('.hero-subtitle');
   if (heroSubEl) heroSubEl.textContent = descVal;
@@ -104,15 +104,15 @@ function applyShopSettings() {
   if (zoneNoticeEl) zoneNoticeEl.textContent = settings.deliveryZones || "Prépayé — virement bancaire — Livraison nationale";
 
   // 6. Site Name
-  const siteNameVal = settings.siteName || "O Souly";
+  const siteNameVal = settings.siteName || "[Shop Name]";
   document.title = `${siteNameVal} — Produits du terroir marocain`;
   document.querySelectorAll('.logo-title').forEach(el => {
     el.textContent = siteNameVal;
   });
 
   // 7. Social Links (Instagram)
-  const igLink = settings.instagramLink || "https://instagram.com/osoulymarrakech";
-  const igHandle = settings.instagramLink ? "@" + settings.instagramLink.split('/').filter(Boolean).pop() : "@osoulymarrakech";
+  const igLink = settings.instagramLink || "https://instagram.com/yourshop";
+  const igHandle = settings.instagramLink ? "@" + settings.instagramLink.split('/').filter(Boolean).pop() : "@yourshop";
   
   const instaHandleEl = document.querySelector('[data-i18n="contact.c3Desc"]');
   if (instaHandleEl) {
@@ -900,7 +900,7 @@ async function loadProductDetail() {
     const product = await res.json();
     
     // Update Page Meta
-    document.title = `${product.name} — O Souly`;
+    document.title = `${product.name} — [Shop Name]`;
     let metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
       metaDesc.setAttribute('content', (product.description || '').substring(0, 150));

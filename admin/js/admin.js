@@ -1,5 +1,5 @@
 /* ========================================
-   Sweet Delights — Admin Dashboard JS
+   Shop Template — Admin Dashboard JS
    ======================================== */
 
 const API = '';
@@ -204,16 +204,16 @@ async function loadShopSettings() {
         document.getElementById('settingWhatsappAdminNumber').value = waSettings.whatsappAdminNumber || "";
         document.getElementById('settingWhatsappEnabled').checked = waSettings.whatsappEnabled !== false;
         
-        const defaultConfirm = "Bonjour {clientName} 👋\nMerci pour votre commande chez O Souly ! 🌿\nVotre commande numéro #{orderId} a bien été reçue.\n📦 Produits commandés:\n{orderItems}\n💰 Total: {orderTotal} MAD\n📍 Adresse de livraison: {clientAddress}, {clientCity}\nNous vous contacterons bientôt pour confirmer la livraison. Merci de votre confiance ! ✨";
+        const defaultConfirm = "Bonjour {clientName} 👋\nMerci pour votre commande chez Shop ! 🌿\nVotre commande numéro #{orderId} a bien été reçue.\n📦 Produits commandés:\n{orderItems}\n💰 Total: {orderTotal} MAD\n📍 Adresse de livraison: {clientAddress}, {clientCity}\nNous vous contacterons bientôt pour confirmer la livraison. Merci de votre confiance ! ✨";
         document.getElementById('settingWhatsappTemplateConfirmation').value = waSettings.whatsappTemplateConfirmation || defaultConfirm;
         
-        const defaultShipped = "Bonjour {clientName} 👋\nBonne nouvelle ! Votre commande O Souly numéro #{orderId} a été expédiée. 🚚\n📍 Adresse de livraison: {clientAddress}, {clientCity}\nVous recevrez votre colis très bientôt. Merci pour votre confiance ! 🌿";
+        const defaultShipped = "Bonjour {clientName} 👋\nBonne nouvelle ! Votre commande Shop numéro #{orderId} a été expédiée. 🚚\n📍 Adresse de livraison: {clientAddress}, {clientCity}\nVous recevrez votre colis très bientôt. Merci pour votre confiance ! 🌿";
         document.getElementById('settingWhatsappTemplateShipped').value = waSettings.whatsappTemplateShipped || defaultShipped;
         
-        const defaultDelivered = "Bonjour {clientName} 👋\nVotre commande O Souly numéro #{orderId} a bien été livrée ! ✅\nNous espérons que vous êtes satisfait(e) de vos produits. 🌿\nN'hésitez pas à nous contacter pour toute question. À bientôt !";
+        const defaultDelivered = "Bonjour {clientName} 👋\nVotre commande Shop numéro #{orderId} a bien été livrée ! ✅\nNous espérons que vous êtes satisfait(e) de vos produits. 🌿\nN'hésitez pas à nous contacter pour toute question. À bientôt !";
         document.getElementById('settingWhatsappTemplateDelivered').value = waSettings.whatsappTemplateDelivered || defaultDelivered;
         
-        const defaultCancelled = "Bonjour {clientName} 👋\nNous sommes désolés de vous informer que votre commande O Souly numéro #{orderId} a été annulée.\nPour toute question, n'hésitez pas à nous contacter directement. Merci de votre compréhension. 🌿";
+        const defaultCancelled = "Bonjour {clientName} 👋\nNous sommes désolés de vous informer que votre commande Shop numéro #{orderId} a été annulée.\nPour toute question, n'hésitez pas à nous contacter directement. Merci de votre compréhension. 🌿";
         document.getElementById('settingWhatsappTemplateCancelled').value = waSettings.whatsappTemplateCancelled || defaultCancelled;
       }
     } catch (err) {
