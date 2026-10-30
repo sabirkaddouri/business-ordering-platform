@@ -1,7 +1,7 @@
 {
-  "name": "osouly-platform",
+  "name": "shop-ordering-platform",
   "version": "1.0.0",
-  "description": "Full-stack ordering platform for O Souly artisan shop",
+  "description": "Full-stack ordering platform for small businesses",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -22,7 +22,6 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
-    "pg": "^8.20.0",
-    "sql.js": "^1.10.0"
+    "pg": "^8.20.0"
   }
 }
