@@ -12,7 +12,7 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
 const DEMO_PORT = 5099;
-const DEMO_DB_URL = process.env.DATABASE_URL || 'postgres://osouly:devpassword@localhost:5432/shop_demo';
+const DEMO_DB_URL = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/shop_demo';
 const SCREENSHOTS_DIR = path.join(__dirname, '..', 'docs', 'screenshots');
 
 if (!fs.existsSync(SCREENSHOTS_DIR)) {
