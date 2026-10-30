@@ -178,7 +178,7 @@ async function initDatabase() {
     console.log(`✅ Admin account created (${adminUsername})`);
   }
 
-  // Seed O Souly categories if table is empty
+  // Seed categories if table is empty
   const catCount = await db.get('SELECT COUNT(*) as count FROM categories');
   if (parseInt(catCount.count) === 0) {
     const categories = [
@@ -194,7 +194,6 @@ async function initDatabase() {
         [name, slug, icon, description, display_order]
       );
     }
-    console.log('✅ O Souly categories seeded');
   } else {
     // Migration: backfill slugs for existing categories that don't have one
     const catsWithoutSlug = await db.all("SELECT id, name FROM categories WHERE slug IS NULL OR slug = ''");

@@ -16,7 +16,7 @@ function createOrderRoutes(db) {
       expires: Date.now() + 5 * 60 * 1000 // 5 minutes
     });
 
-    console.log(`\n=== 📱 MOCK SMS AGENT ===\nTo: ${phone}\nMessage: Your Kawthar Boulangerie Patisserie OTP is ${code}. Expires in 5m.\n=========================\n`);
+    console.log(`\n=== 📱 MOCK SMS AGENT ===\nTo: ${phone}\nMessage: Your Shop OTP is ${code}. Expires in 5m.\n=========================\n`);
     res.json({ message: 'OTP sent successfully.' });
   });
 

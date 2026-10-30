@@ -40,7 +40,7 @@ app.use('/admin', express.static(path.join(__dirname, 'admin'), cacheConfig));
 app.use(express.static(path.join(__dirname, 'public'), cacheConfig));
 
 async function start() {
-  // Initialize database (async for sql.js)
+  // Initialize database
   const rawDb = await initDatabase();
   const db = new DbHelper(rawDb, saveDatabase);
 
@@ -65,7 +65,6 @@ async function start() {
 
   // Start server
   app.listen(PORT, () => {
-    console.log(`\n🌿 O Souly server running at http://localhost:${PORT}`);
     console.log(`📦 Customer store: http://localhost:${PORT}`);
     console.log(`🔧 Admin dashboard: http://localhost:${PORT}/admin`);
     console.log(`📡 API: http://localhost:${PORT}/api\n`);
