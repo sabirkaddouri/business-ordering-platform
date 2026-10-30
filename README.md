@@ -1,5 +1,7 @@
 # Shop Ordering Platform
 
+[![CI](https://github.com/sabirkaddouri/business-ordering-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/sabirkaddouri/business-ordering-platform/actions/workflows/ci.yml)
+
 A full-stack ordering and e-commerce platform for small businesses, with an admin dashboard, multilingual support (French, English, Arabic with RTL), and WhatsApp order notifications.
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=node.js&logoColor=white)
@@ -77,7 +79,17 @@ A full-stack ordering and e-commerce platform for small businesses, with an admi
 
 ## Screenshots
 
-<!-- Add screenshots here -->
+| Storefront (Desktop) | Storefront (Mobile) |
+| :---: | :---: |
+| ![Storefront Home Desktop](docs/screenshots/storefront-home-desktop.png) | ![Storefront Home Mobile](docs/screenshots/storefront-home-mobile.png) |
+
+| Product Details | Cart Drawer |
+| :---: | :---: |
+| ![Storefront Product](docs/screenshots/storefront-product.png) | ![Storefront Cart](docs/screenshots/storefront-cart.png) |
+
+| Admin Dashboard | Admin Orders |
+| :---: | :---: |
+| ![Admin Dashboard](docs/screenshots/admin-dashboard.png) | ![Admin Orders](docs/screenshots/admin-orders.png) |
 
 ## License
 

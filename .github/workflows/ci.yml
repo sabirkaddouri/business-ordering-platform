@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_password_123
+          POSTGRES_DB: ci_shop_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check i18n dictionaries (if present)
+        run: |
+          if [ -f scripts/check-i18n.js ]; then
+            node scripts/check-i18n.js
+          fi
+
+      - name: Test server startup and API availability
+        env:
+          DATABASE_URL: postgres://ci_user:ci_password_123@localhost:5432/ci_shop_db
+          JWT_SECRET: ci-test-secret
+          ADMIN_USERNAME: ci-admin
+          ADMIN_PASSWORD: ci-password-123
+          PORT: 5000
+        run: |
+          node server.js &
+          SERVER_PID=$!
+          echo "Waiting up to 30 seconds for GET http://localhost:5000/api/products..."
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/products || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "Server returned 200 OK after ${i}s."
+              kill $SERVER_PID
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server failed to respond with 200 OK within 30 seconds."
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1
