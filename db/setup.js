@@ -212,24 +212,44 @@ async function initDatabase() {
   // Seed products if not exists
   const prodCount = await db.get('SELECT COUNT(*) as count FROM products');
   if (parseInt(prodCount.count) === 0) {
+    const allCategories = await db.all('SELECT id, name, slug FROM categories');
+    const categoryLookup = {};
+    if (allCategories) {
+      for (const cat of allCategories) {
+        if (cat.id) {
+          if (cat.slug) categoryLookup[cat.slug.toLowerCase().trim()] = cat.id;
+          if (cat.name) categoryLookup[cat.name.toLowerCase().trim()] = cat.id;
+        }
+      }
+    }
+
     const products = [
-      ['Cornes de Gazelle', 'Traditional Moroccan pastry with sweet almond paste and orange blossom water', 15.00, 1, 'default.jpg', 1],
-      ['Briouates aux Amandes', 'Crispy sweet pastries folded into triangles, stuffed with almond paste and coated in pure honey', 12.00, 1, 'default.jpg', 1],
-      ['Chebakia', 'Flower-shaped Moroccan sesame cookie, fried, coated with honey and sesame seeds', 18.00, 1, 'default.jpg', 1],
-      ['Ghriba', 'Traditional Moroccan cracked cookie, crunchy on the outside and chewy inside', 10.00, 1, 'default.jpg', 0],
-      ['Croissant', 'Buttery, flaky, golden classic French croissant baked fresh daily', 8.00, 2, 'default.jpg', 1],
-      ['Eclair au Chocolat', 'Choux pastry filled with rich chocolate custard and topped with chocolate glaze', 15.00, 2, 'default.jpg', 0],
-      ['Macaron', 'Delicate French meringue-based confection filled with chocolate ganache or raspberry', 12.00, 2, 'default.jpg', 0],
-      ['Pain au Chocolat', 'Classic French puff pastry with dark chocolate bars inside', 9.00, 2, 'default.jpg', 0],
-      ['Mille-feuille', 'Layers of puff pastry and vanilla pastry cream, topped with traditional icing sugar', 18.00, 2, 'default.jpg', 1],
-      ['Tarte aux Fraises', 'Sweet tart pastry crust filled with crème pâtissière and topped with fresh strawberries', 25.00, 2, 'default.jpg', 0],
-      ['Celebration Chocolate Cake', 'Premium chocolate cake with rich ganache frosting, perfect for any special occasion', 250.00, 3, 'default.jpg', 1],
-      ['Traditional Moroccan Bread (Khobz)', 'Freshly baked traditional round crusty Moroccan bread, perfect with tea', 3.00, 4, 'default.jpg', 0],
-      ['Moroccan Mint Tea', 'Fresh mint tea brewed with green gunpowder tea, served steaming hot', 10.00, 5, 'default.jpg', 0],
-      ['Seasonal Almond Fruit Tart', 'Fresh seasonal fruits on a rich almond cream baked in a sweet crust', 35.00, 6, 'default.jpg', 1]
+      ['Cornes de Gazelle', 'Traditional Moroccan pastry with sweet almond paste and orange blossom water', 15.00, 'miels-tartinades', 'default.jpg', 1],
+      ['Briouates aux Amandes', 'Crispy sweet pastries folded into triangles, stuffed with almond paste and coated in pure honey', 12.00, 'miels-tartinades', 'default.jpg', 1],
+      ['Chebakia', 'Flower-shaped Moroccan sesame cookie, fried, coated with honey and sesame seeds', 18.00, 'miels-tartinades', 'default.jpg', 1],
+      ['Ghriba', 'Traditional Moroccan cracked cookie, crunchy on the outside and chewy inside', 10.00, 'miels-tartinades', 'default.jpg', 0],
+      ['Croissant', 'Buttery, flaky, golden classic French croissant baked fresh daily', 8.00, 'huiles-extra-vierge', 'default.jpg', 1],
+      ['Eclair au Chocolat', 'Choux pastry filled with rich chocolate custard and topped with chocolate glaze', 15.00, 'huiles-extra-vierge', 'default.jpg', 0],
+      ['Macaron', 'Delicate French meringue-based confection filled with chocolate ganache or raspberry', 12.00, 'huiles-extra-vierge', 'default.jpg', 0],
+      ['Pain au Chocolat', 'Classic French puff pastry with dark chocolate bars inside', 9.00, 'huiles-extra-vierge', 'default.jpg', 0],
+      ['Mille-feuille', 'Layers of puff pastry and vanilla pastry cream, topped with traditional icing sugar', 18.00, 'huiles-extra-vierge', 'default.jpg', 1],
+      ['Tarte aux Fraises', 'Sweet tart pastry crust filled with crème pâtissière and topped with fresh strawberries', 25.00, 'huiles-extra-vierge', 'default.jpg', 0],
+      ['Celebration Chocolate Cake', 'Premium chocolate cake with rich ganache frosting, perfect for any special occasion', 250.00, 'epices-aromates', 'default.jpg', 1],
+      ['Traditional Moroccan Bread (Khobz)', 'Freshly baked traditional round crusty Moroccan bread, perfect with tea', 3.00, 'tisanes', 'default.jpg', 0],
+      ['Moroccan Mint Tea', 'Fresh mint tea brewed with green gunpowder tea, served steaming hot', 10.00, 'tisanes', 'default.jpg', 0],
+      ['Seasonal Almond Fruit Tart', 'Fresh seasonal fruits on a rich almond cream baked in a sweet crust', 35.00, 'huiles-extra-vierge', 'default.jpg', 1]
     ];
-    for (const p of products) {
-      await db.run('INSERT INTO products (name, description, price, category_id, image, featured) VALUES (?, ?, ?, ?, ?, ?)', p);
+    for (const [name, description, price, categoryKey, image, featured] of products) {
+      const key = String(categoryKey).toLowerCase().trim();
+      const categoryId = categoryLookup[key] || (typeof categoryKey === 'number' && allCategories.find(c => c.id === categoryKey)?.id);
+      if (!categoryId) {
+        console.warn(`⚠️ Skipping starter product "${name}": category "${categoryKey}" not found in database.`);
+        continue;
+      }
+      await db.run(
+        'INSERT INTO products (name, description, price, category_id, image, featured) VALUES (?, ?, ?, ?, ?, ?)',
+        [name, description, price, categoryId, image, featured]
+      );
     }
     console.log('✅ Sample products seeded');
   }
