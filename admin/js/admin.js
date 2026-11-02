@@ -8,6 +8,17 @@ let adminUsername = localStorage.getItem('sd_admin_user') || 'مدير';
 let allProducts = [];
 let allCategories = [];
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+
 // --- Init ---
 
 let currentLang = localStorage.getItem('sd_admin_lang') || navigator.language.slice(0, 2) || 'fr';
@@ -299,8 +310,8 @@ function renderProductsTable() {
     return `
       <tr style="${rowStyle}">
         <td>${img}</td>
-        <td><strong>${p.name}</strong></td>
-        <td>${p.category_name || '—'}</td>
+        <td><strong>${escapeHtml(p.name)}</strong></td>
+        <td>${escapeHtml(p.category_name || '—')}</td>
         <td>${p.price.toFixed(2)} MAD</td>
         <td><span class="toggle-badge ${p.featured ? 'toggle-on' : 'toggle-off'}">${p.featured ? i18nAdminStore[currentLang].js.yes : i18nAdminStore[currentLang].js.no}</span></td>
         <td><span class="toggle-badge ${p.available ? 'toggle-on' : 'toggle-off'}">${p.available ? i18nAdminStore[currentLang].js.yes : i18nAdminStore[currentLang].js.no}</span></td>
@@ -351,7 +362,7 @@ function renderRecentOrders(orders) {
   tbody.innerHTML = orders.map(o => `
     <tr>
       <td>#${o.id}</td>
-      <td>${o.customer_name}</td>
+      <td>${escapeHtml(o.customer_name)}</td>
       <td>${o.items ? o.items.length : 0} ${i18nAdminStore[currentLang].js.items}</td>
       <td>${o.total.toFixed(2)} MAD</td>
       <td><span class="status-badge status-${o.status}">${o.status}</span></td>
@@ -370,9 +381,9 @@ function renderOrdersTable(orders) {
   tbody.innerHTML = orders.map(o => `
     <tr>
       <td>#${o.id}</td>
-      <td>${o.customer_name}</td>
-      <td>${o.customer_phone}</td>
-      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;">${o.customer_address}</td>
+      <td>${escapeHtml(o.customer_name)}</td>
+      <td>${escapeHtml(o.customer_phone)}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(o.customer_address)}</td>
       <td>${o.items ? o.items.length : 0} ${i18nAdminStore[currentLang].js.items}</td>
       <td>${o.total.toFixed(2)} MAD</td>
       <td>
@@ -550,7 +561,7 @@ async function viewOrderDetail(id) {
           return `<li style="align-items:center; justify-content:flex-start;">
             ${img}
             <div style="flex:1;">
-              <div style="font-weight:600;">${i.product_name}</div>
+              <div style="font-weight:600;">${escapeHtml(i.product_name)}</div>
               <div style="font-size:12px;color:var(--text-light);">Qty: ${i.quantity}</div>
             </div>
             <span style="font-weight:600;">${(i.price * i.quantity).toFixed(2)} MAD</span>
@@ -587,10 +598,10 @@ async function viewOrderDetail(id) {
           👤 ${i18nAdminStore[currentLang].ordModal.custInfo}
         </div>
         <div style="display: grid; grid-template-columns: 1fr; gap: 10px; font-size: 13px;">
-          <div><strong>${i18nAdminStore[currentLang].js.cust}:</strong> <span style="font-size: 14px; font-weight: 600;">${order.customer_name}</span></div>
-          <div><strong>${i18nAdminStore[currentLang].ordPanel.phone}:</strong> <a href="tel:${order.customer_phone}" style="color: var(--primary); text-decoration: none;">${order.customer_phone}</a></div>
-          ${order.customer_email ? `<div><strong>Email:</strong> ${order.customer_email}</div>` : ''}
-          <div><strong>${i18nAdminStore[currentLang].ordPanel.address}:</strong> <span style="color: var(--text-light);">${order.customer_address}</span></div>
+          <div><strong>${i18nAdminStore[currentLang].js.cust}:</strong> <span style="font-size: 14px; font-weight: 600;">${escapeHtml(order.customer_name)}</span></div>
+          <div><strong>${i18nAdminStore[currentLang].ordPanel.phone}:</strong> <a href="tel:${escapeHtml(order.customer_phone)}" style="color: var(--primary); text-decoration: none;">${escapeHtml(order.customer_phone)}</a></div>
+          ${order.customer_email ? `<div><strong>Email:</strong> ${escapeHtml(order.customer_email)}</div>` : ''}
+          <div><strong>${i18nAdminStore[currentLang].ordPanel.address}:</strong> <span style="color: var(--text-light);">${escapeHtml(order.customer_address)}</span></div>
         </div>
       </div>
 
@@ -613,13 +624,13 @@ async function viewOrderDetail(id) {
       ${order.notes ? `
         <div class="order-detail-section" style="margin-top: 15px; background: rgba(255,255,255,0.01); border: 1px dashed var(--dark-border); padding: 12px; border-radius: 8px;">
           <h4>💬 ${i18nAdminStore[currentLang].js.notes}</h4>
-          <p style="font-style: italic;">${order.notes}</p>
+          <p style="font-style: italic;">${escapeHtml(order.notes)}</p>
         </div>
       ` : ''}
 
       <div class="order-detail-section" style="margin-top: 20px; border-top: 1px solid var(--dark-border); padding-top: 20px;">
         <h4 style="display: flex; align-items: center; gap: 6px;">📝 ${i18nAdminStore[currentLang].ordModal.adminNote}</h4>
-        <textarea id="adminOrderNote" style="width: 100%; min-height: 80px; padding: 10px; border-radius: 8px; border: 1px solid var(--dark-border); background: var(--bg-input); color: var(--text); resize: vertical; margin-top: 8px; font-family: inherit; font-size: 13px;" placeholder="${i18nAdminStore[currentLang].ordModal.adminNote}">${order.admin_note || ''}</textarea>
+        <textarea id="adminOrderNote" style="width: 100%; min-height: 80px; padding: 10px; border-radius: 8px; border: 1px solid var(--dark-border); background: var(--bg-input); color: var(--text); resize: vertical; margin-top: 8px; font-family: inherit; font-size: 13px;" placeholder="${i18nAdminStore[currentLang].ordModal.adminNote}">${escapeHtml(order.admin_note || '')}</textarea>
         <button class="btn btn-primary btn-sm" onclick="saveOrderNote(${order.id})" style="margin-top: 8px;">
           💾 ${i18nAdminStore[currentLang].ordModal.saveNote}
         </button>
@@ -1265,7 +1276,7 @@ function renderNotifications(notifications, unreadCount) {
     return `
       <div onclick="openOrderFromNotif(${n.id},${n.orderId})"
            style="padding:12px 16px;border-bottom:1px solid var(--dark-border);cursor:pointer;${bg}display:flex;flex-direction:column;gap:4px;">
-        <span style="font-size:13px;">${n.message}</span>
+        <span style="font-size:13px;">${escapeHtml(n.message)}</span>
         <span style="font-size:11px;color:var(--text-light);">${elapsed}</span>
       </div>`;
   }).join('');
@@ -1490,9 +1501,9 @@ function renderCityGroups() {
               ${group.orders.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).map(o => `
                 <tr>
                   <td>#${o.id}</td>
-                  <td><strong>${o.customer_name}</strong></td>
-                  <td style="max-width:200px; white-space:normal;">${o.customer_address}</td>
-                  <td><a href="tel:${o.customer_phone}" style="color:var(--primary);text-decoration:none;">${o.customer_phone}</a></td>
+                  <td><strong>${escapeHtml(o.customer_name)}</strong></td>
+                  <td style="max-width:200px; white-space:normal;">${escapeHtml(o.customer_address)}</td>
+                  <td><a href="tel:${escapeHtml(o.customer_phone)}" style="color:var(--primary);text-decoration:none;">${escapeHtml(o.customer_phone)}</a></td>
                   <td>${o.total.toFixed(2)} MAD</td>
                   <td>
                     <select class="select-input" style="padding:4px 24px 4px 8px;min-width:110px;font-size:12px;" onchange="updateOrderStatus(${o.id}, this.value)">
@@ -1626,7 +1637,7 @@ function renderCategoriesTable() {
     return `<tr>
       <td>${cat.display_order}</td>
       <td style="font-size: 24px;">${cat.icon || '📦'}</td>
-      <td><strong>${cat.name}</strong><br><small style="color:var(--text-light);">${cat.slug}</small></td>
+      <td><strong>${escapeHtml(cat.name)}</strong><br><small style="color:var(--text-light);">${escapeHtml(cat.slug)}</small></td>
       <td><span class="status-badge" style="background:#f0f4f8;color:var(--text);">${cat.product_count || 0} produits</span></td>
       <td>
         <div class="action-buttons">

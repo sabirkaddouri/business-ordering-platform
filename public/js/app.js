@@ -10,6 +10,17 @@ let activeCategory = 'all';
 let otpSent = false;
 let activePromo = null;
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+
 let currentLang = localStorage.getItem('sd_lang') || navigator.language.slice(0, 2) || 'fr';
 if (!window.i18nStore || !window.i18nStore[currentLang]) currentLang = 'fr';
 
@@ -289,9 +300,9 @@ function createProductCard(product) {
         <div style="position:absolute; top:12px; left:12px; display:flex;">${badges}</div>
       </div>
       <div class="card-body">
-        <div class="card-category">${product.category_icon || ''} ${product.category_name || 'Sweet'}</div>
-        <h3 class="card-title">${product.name}</h3>
-        <p class="card-desc">${product.description || ''}</p>
+        <div class="card-category">${escapeHtml(product.category_icon || '')} ${escapeHtml(product.category_name || 'Sweet')}</div>
+        <h3 class="card-title">${escapeHtml(product.name)}</h3>
+        <p class="card-desc">${escapeHtml(product.description || '')}</p>
         <div class="card-footer">
           <span class="card-price">${product.price.toFixed(2)} MAD</span>
           <button class="add-to-cart-btn ${inCart ? 'added' : ''}" data-id="${product.id}" ${isOutOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>
@@ -448,7 +459,7 @@ function updateCartUI() {
       <div class="cart-item">
         <div class="cart-item-image">${imgContent}</div>
         <div class="cart-item-info">
-          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-item-name">${escapeHtml(item.name)}</div>
           <div class="cart-item-price">${(item.price * item.quantity).toFixed(2)} MAD</div>
         </div>
         <div class="cart-item-controls">
@@ -1045,14 +1056,14 @@ function renderProductDetailUI(product) {
   }
 
   // Description
-  const descText = product.description ? product.description.replace(/\n/g, '<br>') : 'Aucune description disponible.';
+  const descText = product.description ? escapeHtml(product.description).replace(/\n/g, '<br>') : 'Aucune description disponible.';
   if (document.getElementById('pdDescription')) document.getElementById('pdDescription').innerHTML = descText;
 
   // Ingredients
   if (product.ingredients && product.ingredients.trim() !== '') {
     const ingSec = document.getElementById('pdIngredientsSection');
     if (ingSec) ingSec.style.display = 'block';
-    if (document.getElementById('pdIngredients')) document.getElementById('pdIngredients').innerHTML = product.ingredients.replace(/\n/g, '<br>');
+    if (document.getElementById('pdIngredients')) document.getElementById('pdIngredients').innerHTML = escapeHtml(product.ingredients).replace(/\n/g, '<br>');
   }
 
   // Metadata
