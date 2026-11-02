@@ -1,11 +1,28 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
+const { validate, z, idParamSchema } = require('../middleware/validate');
 
+const validatePromoSchema = z.object({
+  code: z.string().trim().min(1, 'Code is required').max(50),
+  cartTotal: z.coerce.number().min(0, 'cartTotal must be a positive number'),
+  cartProductIds: z.array(z.union([z.string(), z.number()])).optional().default([])
+}).strict();
+
+const createPromoSchema = z.object({
+  code: z.string().trim().min(1, 'Code is required').max(50),
+  type: z.enum(['percentage', 'fixed']),
+  value: z.coerce.number().min(0, 'Value must be positive'),
+  minimumOrder: z.coerce.number().min(0).optional().default(0),
+  expiryDate: z.string().max(50).nullable().optional(),
+  active: z.coerce.boolean().optional().default(true),
+  scope: z.enum(['all', 'specific_products']).optional().default('all'),
+  targetProducts: z.array(z.union([z.string(), z.number()])).optional().default([])
+}).strict();
 function createPromotionRoutes(db) {
   const router = express.Router();
 
   // POST /api/promotions/validate — public: validate a promo code
-  router.post('/validate', async (req, res) => {
+  router.post('/validate', validate({ body: validatePromoSchema }), async (req, res) => {
     try {
       const { code, cartTotal, cartProductIds = [] } = req.body;
       if (!code) return res.status(400).json({ error: 'Code is required.' });
@@ -95,7 +112,7 @@ function createPromotionRoutes(db) {
   });
 
   // POST /api/promotions — create (admin only)
-  router.post('/', authenticateToken, async (req, res) => {
+  router.post('/', authenticateToken, validate({ body: createPromoSchema }), async (req, res) => {
     try {
       const { code, type, value, minimumOrder, expiryDate, active, scope, targetProducts } = req.body;
       if (!code || !type || value === undefined) {
@@ -130,7 +147,7 @@ function createPromotionRoutes(db) {
   });
 
   // PUT /api/promotions/:id/toggle — activate/deactivate (admin only)
-  router.put('/:id/toggle', authenticateToken, async (req, res) => {
+  router.put('/:id/toggle', authenticateToken, validate({ params: idParamSchema }), async (req, res) => {
     try {
       const promo = await db.get('SELECT id, code, type, value, minimumorder AS "minimumOrder", expirydate AS "expiryDate", active, scope, targetproducts AS "targetProducts", usagecount AS "usageCount", created_at FROM promotions WHERE id = ?', [parseInt(req.params.id)]);
       if (!promo) return res.status(404).json({ error: 'Promotion not found.' });
@@ -144,7 +161,7 @@ function createPromotionRoutes(db) {
   });
 
   // DELETE /api/promotions/:id — delete (admin only)
-  router.delete('/:id', authenticateToken, async (req, res) => {
+  router.delete('/:id', authenticateToken, validate({ params: idParamSchema }), async (req, res) => {
     try {
       const promo = await db.get('SELECT * FROM promotions WHERE id = ?', [parseInt(req.params.id)]);
       if (!promo) return res.status(404).json({ error: 'Promotion not found.' });

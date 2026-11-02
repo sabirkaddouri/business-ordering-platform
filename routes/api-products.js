@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { authenticateToken } = require('../middleware/auth');
+const { validate, z, idParamSchema } = require('../middleware/validate');
 
 // Configure multer for image uploads with optional Cloudinary support for production
 let storage;
@@ -50,6 +51,28 @@ const upload = multer({
   }
 });
 
+
+const createProductSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(200),
+  description: z.string().max(2000).optional().default(''),
+  price: z.coerce.number().min(0, 'Price must be a valid positive number'),
+  category_id: z.preprocess(v => (v === '' || v === 'null' || v === undefined ? null : v), z.coerce.number().int().positive().nullable().optional()),
+  featured: z.preprocess(v => (v === '1' || v === 1 || v === 'true' || v === true ? 1 : 0), z.number().int().min(0).max(1).optional()),
+  available: z.preprocess(v => (v === '0' || v === 0 || v === 'false' || v === false ? 0 : 1), z.number().int().min(0).max(1).optional()),
+  stock: z.preprocess(v => (v === '' || v === undefined ? 0 : v), z.coerce.number().int().min(0).optional()),
+  trackStock: z.preprocess(v => (v === '1' || v === 1 || v === 'true' || v === true ? 1 : 0), z.number().int().min(0).max(1).optional())
+}).strict();
+
+const updateProductSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  description: z.string().max(2000).optional(),
+  price: z.coerce.number().min(0, 'Price must be a valid positive number').optional(),
+  category_id: z.preprocess(v => (v === '' || v === 'null' || v === undefined ? null : v), z.coerce.number().int().positive().nullable().optional()),
+  featured: z.preprocess(v => (v === undefined ? undefined : (v === '1' || v === 1 || v === 'true' || v === true ? 1 : 0)), z.number().int().min(0).max(1).optional()),
+  available: z.preprocess(v => (v === undefined ? undefined : (v === '0' || v === 0 || v === 'false' || v === false ? 0 : 1)), z.number().int().min(0).max(1).optional()),
+  stock: z.preprocess(v => (v === undefined ? undefined : (v === '' ? 0 : v)), z.coerce.number().int().min(0).optional()),
+  trackStock: z.preprocess(v => (v === undefined ? undefined : (v === '1' || v === 1 || v === 'true' || v === true ? 1 : 0)), z.number().int().min(0).max(1).optional())
+}).strict();
 function createProductRoutes(db) {
   const router = express.Router();
 
@@ -112,7 +135,7 @@ function createProductRoutes(db) {
   });
 
   // GET /api/products/:id — single product (public)
-  router.get('/:id', async (req, res) => {
+  router.get('/:id', validate({ params: idParamSchema }), async (req, res) => {
     try {
       const product = await db.get(
         `SELECT p.*, p.trackstock as "trackStock", c.name as category_name, c.icon as category_icon 
@@ -131,7 +154,7 @@ function createProductRoutes(db) {
   });
 
   // POST /api/products — create (admin only)
-  router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
+  router.post('/', authenticateToken, upload.single('image'), validate({ body: createProductSchema }), async (req, res) => {
     try {
       const { name, description, price, category_id, featured, available, stock, trackStock } = req.body;
 
@@ -166,7 +189,7 @@ function createProductRoutes(db) {
   });
 
   // PUT /api/products/:id — update (admin only)
-  router.put('/:id', authenticateToken, upload.single('image'), async (req, res) => {
+  router.put('/:id', authenticateToken, upload.single('image'), validate({ params: idParamSchema, body: updateProductSchema }), async (req, res) => {
     try {
       const existing = await db.get('SELECT * FROM products WHERE id = ?', [parseInt(req.params.id)]);
       if (!existing) return res.status(404).json({ error: 'Product not found.' });
@@ -226,7 +249,7 @@ function createProductRoutes(db) {
   });
 
   // DELETE /api/products/:id — delete (admin only)
-  router.delete('/:id', authenticateToken, async (req, res) => {
+  router.delete('/:id', authenticateToken, validate({ params: idParamSchema }), async (req, res) => {
     try {
       const existing = await db.get('SELECT * FROM products WHERE id = ?', [parseInt(req.params.id)]);
       if (!existing) return res.status(404).json({ error: 'Product not found.' });

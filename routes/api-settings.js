@@ -1,6 +1,34 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
+const { validate, z } = require('../middleware/validate');
 
+const settingsSchema = z.object({
+  siteName: z.string().max(100).optional(),
+  description: z.string().max(2000).optional(),
+  address: z.string().max(300).optional(),
+  googleMapsLink: z.string().max(500).optional(),
+  phone: z.string().max(50).optional(),
+  openHours: z.string().max(200).optional(),
+  paymentTerms: z.string().max(1000).optional(),
+  deliveryZones: z.string().max(2000).optional(),
+  minOrderAmount: z.preprocess(v => (v === '' ? 0 : v), z.coerce.number().min(0).optional()),
+  deliveryFee: z.preprocess(v => (v === '' ? 0 : v), z.coerce.number().min(0).optional()),
+  freeDeliveryThreshold: z.preprocess(v => (v === '' || v === null ? null : v), z.coerce.number().min(0).nullable().optional()),
+  taxEnabled: z.coerce.boolean().optional(),
+  taxRate: z.preprocess(v => (v === '' ? 0 : v), z.coerce.number().min(0).max(100).optional()),
+  storeOpen: z.coerce.boolean().optional(),
+  storeClosedMessage: z.string().max(500).optional(),
+  orderWhatsapp: z.string().max(50).optional(),
+  orderEmail: z.string().max(100).optional(),
+  instagramLink: z.string().max(300).optional(),
+  facebookLink: z.string().max(300).optional(),
+  whatsappAdminNumber: z.string().max(50).optional(),
+  whatsappEnabled: z.coerce.boolean().optional(),
+  whatsappTemplateConfirmation: z.string().max(2000).optional(),
+  whatsappTemplateShipped: z.string().max(2000).optional(),
+  whatsappTemplateDelivered: z.string().max(2000).optional(),
+  whatsappTemplateCancelled: z.string().max(2000).optional()
+}).strict();
 function createSettingsRoutes(db) {
   const router = express.Router();
 
@@ -60,7 +88,7 @@ function createSettingsRoutes(db) {
   });
 
   // POST /api/settings - protected route to save settings
-  router.post('/', authenticateToken, async (req, res) => {
+  router.post('/', authenticateToken, validate({ body: settingsSchema }), async (req, res) => {
     try {
       const body = req.body;
 

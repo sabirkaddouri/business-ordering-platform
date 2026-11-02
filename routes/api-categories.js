@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
+const { validate, z, idParamSchema } = require('../middleware/validate');
 
 // Helper: generate slug from name
 function generateSlug(name) {
@@ -11,6 +12,19 @@ function generateSlug(name) {
     .replace(/^-|-$/g, '');
 }
 
+const createCategorySchema = z.object({
+  name: z.string().trim().min(1, 'Category name is required').max(100),
+  icon: z.string().max(50).optional().default(''),
+  description: z.string().max(500).optional().default(''),
+  order: z.coerce.number().optional().default(0)
+}).strict();
+
+const updateCategorySchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  icon: z.string().max(50).optional(),
+  description: z.string().max(500).optional(),
+  order: z.coerce.number().optional()
+}).strict();
 function createCategoryRoutes(db) {
   const router = express.Router();
 
@@ -38,7 +52,7 @@ function createCategoryRoutes(db) {
   });
 
   // POST /api/categories — create (admin only)
-  router.post('/', authenticateToken, async (req, res) => {
+  router.post('/', authenticateToken, validate({ body: createCategorySchema }), async (req, res) => {
     try {
       const { name, icon, description, order } = req.body;
 
@@ -71,7 +85,7 @@ function createCategoryRoutes(db) {
   });
 
   // PUT /api/categories/:id — update (admin only)
-  router.put('/:id', authenticateToken, async (req, res) => {
+  router.put('/:id', authenticateToken, validate({ params: idParamSchema, body: updateCategorySchema }), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existing = await db.get('SELECT * FROM categories WHERE id = ?', [id]);
@@ -119,7 +133,7 @@ function createCategoryRoutes(db) {
   });
 
   // DELETE /api/categories/:id — delete (admin only, blocked if products exist)
-  router.delete('/:id', authenticateToken, async (req, res) => {
+  router.delete('/:id', authenticateToken, validate({ params: idParamSchema }), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const existing = await db.get('SELECT * FROM categories WHERE id = ?', [id]);

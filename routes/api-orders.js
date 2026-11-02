@@ -1,6 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { authenticateToken } = require('../middleware/auth');
+const { validate, z, idParamSchema } = require('../middleware/validate');
 
 
 // Strict per-IP limiters to prevent spam and SMS abuse
@@ -19,12 +20,45 @@ const orderLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many orders placed from this IP. Please try again after 15 minutes.' }
 });
+const sendOtpSchema = z.object({
+  phone: z.string().trim().regex(/^[\+]?[0-9\s\-\./()]{8,25}$/, 'Invalid phone number format')
+}).strict();
+
+const createOrderSchema = z.object({
+  customer_name: z.string().trim().min(1, 'Name is required').max(100),
+  customer_phone: z.string().trim().regex(/^[\+]?[0-9\s\-\./()]{8,25}$/, 'Invalid phone number format'),
+  customer_email: z.string().trim().max(100).optional().nullable().refine(val => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), { message: 'Invalid email address format' }),
+  customer_city: z.string().trim().max(100).optional().default(''),
+  customer_address: z.string().trim().min(1, 'Address is required').max(300),
+  notes: z.string().trim().max(500).optional().default(''),
+  promoCode: z.string().trim().max(50).nullable().optional(),
+  otp: z.string().trim().max(10).optional(),
+  items: z.array(
+    z.object({
+      product_id: z.coerce.number().int().positive(),
+      quantity: z.coerce.number().int().positive().max(1000)
+    }).strict()
+  ).min(1, 'At least one item is required').max(50)
+}).strict();
+
+const updateStatusSchema = z.object({
+  status: z.enum(['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'])
+}).strict();
+
+const updateAdminNoteSchema = z.object({
+  admin_note: z.string().max(1000).optional()
+}).strict();
+
+const whatsappLogSchema = z.object({
+  templateType: z.string().max(50),
+  messagePreview: z.string().max(200).optional()
+}).strict();
 function createOrderRoutes(db) {
   const router = express.Router();
   const otpStore = new Map();
 
   // POST /api/orders/send-otp (mock SMS agent)
-  router.post('/send-otp', otpLimiter, async (req, res) => {
+  router.post('/send-otp', otpLimiter, validate({ body: sendOtpSchema }), async (req, res) => {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ error: 'Phone is required.' });
     
@@ -65,7 +99,7 @@ function createOrderRoutes(db) {
   });
 
   // POST /api/orders — place order (public)
-  router.post('/', orderLimiter, async (req, res) => {
+  router.post('/', orderLimiter, validate({ body: createOrderSchema }), async (req, res) => {
     try {
       const { customer_name, customer_phone, customer_email, customer_address, customer_city, notes, items, otp, promoCode } = req.body;
 
@@ -255,7 +289,7 @@ function createOrderRoutes(db) {
   });
 
   // GET /api/orders/:id — single order (admin only)
-  router.get('/:id', authenticateToken, async (req, res) => {
+  router.get('/:id', authenticateToken, validate({ params: idParamSchema }), async (req, res) => {
     try {
       const order = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [parseInt(req.params.id)]);
       if (!order) return res.status(404).json({ error: 'Order not found.' });
@@ -269,7 +303,7 @@ function createOrderRoutes(db) {
   });
 
   // PUT /api/orders/:id/status — update order status (admin only)
-  router.put('/:id/status', authenticateToken, async (req, res) => {
+  router.put('/:id/status', authenticateToken, validate({ params: idParamSchema, body: updateStatusSchema }), async (req, res) => {
     try {
       const { status } = req.body;
       const validStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'];
@@ -293,7 +327,7 @@ function createOrderRoutes(db) {
   });
 
   // PUT /api/orders/:id/admin-note — update admin note (admin only)
-  router.put('/:id/admin-note', authenticateToken, async (req, res) => {
+  router.put('/:id/admin-note', authenticateToken, validate({ params: idParamSchema, body: updateAdminNoteSchema }), async (req, res) => {
     try {
       const { admin_note } = req.body;
       const existing = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [parseInt(req.params.id)]);
@@ -311,7 +345,7 @@ function createOrderRoutes(db) {
   });
 
   // DELETE /api/orders/:id — delete order (admin only)
-  router.delete('/:id', authenticateToken, async (req, res) => {
+  router.delete('/:id', authenticateToken, validate({ params: idParamSchema }), async (req, res) => {
     try {
       const existing = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [parseInt(req.params.id)]);
       if (!existing) return res.status(404).json({ error: 'Order not found.' });
@@ -327,7 +361,7 @@ function createOrderRoutes(db) {
 
 
   // POST /api/orders/:id/whatsapp-log - Add to whatsapp log
-  router.post('/:id/whatsapp-log', authenticateToken, async (req, res) => {
+  router.post('/:id/whatsapp-log', authenticateToken, validate({ params: idParamSchema, body: whatsappLogSchema }), async (req, res) => {
     try {
       const { templateType, messagePreview } = req.body;
       const existing = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [parseInt(req.params.id)]);

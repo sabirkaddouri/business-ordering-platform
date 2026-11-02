@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
+const { validate, idParamSchema } = require('../middleware/validate');
 
 function createNotificationRoutes(db) {
   const router = express.Router();
@@ -30,7 +31,7 @@ function createNotificationRoutes(db) {
   });
 
   // PUT /api/notifications/:id/read — mark one as read (admin only)
-  router.put('/:id/read', authenticateToken, async (req, res) => {
+  router.put('/:id/read', authenticateToken, validate({ params: idParamSchema }), async (req, res) => {
     try {
       await db.run('UPDATE notifications SET read = 1 WHERE id = ?', [parseInt(req.params.id)]);
       res.json({ message: 'Notification marked as read.' });

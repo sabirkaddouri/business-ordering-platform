@@ -3,6 +3,23 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
+const { validate, z } = require('../middleware/validate');
+
+const loginSchema = z.object({
+  username: z.string().trim().min(1, 'Username is required').max(100),
+  password: z.string().min(1, 'Password is required').max(255)
+}).strict();
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required').max(255),
+  newPassword: z.string().min(6, 'New password must be at least 6 characters').max(255)
+}).strict();
+
+const updateProfileSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required').max(255),
+  newUsername: z.string().trim().min(1).max(100).optional(),
+  newPassword: z.string().min(6, 'New password must be at least 6 characters').max(255).optional()
+}).strict();
 
 // Rate limiting: max 5 failed attempts per 15 minutes per IP and per username
 const loginIpLimiter = rateLimit({
@@ -33,7 +50,7 @@ function createAuthRoutes(db) {
   const router = express.Router();
 
   // POST /api/auth/login
-  router.post('/login', loginIpLimiter, loginUsernameLimiter, async (req, res) => {
+  router.post('/login', loginIpLimiter, loginUsernameLimiter, validate({ body: loginSchema }), async (req, res) => {
     try {
       const { username, password } = req.body;
 
@@ -60,7 +77,7 @@ function createAuthRoutes(db) {
   });
 
   // POST /api/auth/change-password (protected by authenticateToken middleware)
-  router.post('/change-password', authenticateToken, async (req, res) => {
+  router.post('/change-password', authenticateToken, validate({ body: changePasswordSchema }), async (req, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
       const adminId = req.admin.id;
@@ -88,7 +105,7 @@ function createAuthRoutes(db) {
   });
 
   // POST /api/auth/update-profile
-  router.post('/update-profile', authenticateToken, async (req, res) => {
+  router.post('/update-profile', authenticateToken, validate({ body: updateProfileSchema }), async (req, res) => {
     try {
       const { 
         newUsername, currentPassword, newPassword
