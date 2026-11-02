@@ -1,5 +1,28 @@
 require('dotenv').config(); // Load environment variables from .env file for production readiness
 
+// Validate critical security env vars in production
+if (process.env.NODE_ENV === 'production') {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret || jwtSecret.length < 32) {
+    console.error('FATAL SECURITY ERROR: JWT_SECRET is missing or shorter than 32 characters in production.');
+    process.exit(1);
+  }
+
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (adminPassword) {
+    if (adminPassword.length < 12) {
+      console.error('FATAL SECURITY ERROR: ADMIN_PASSWORD must be at least 12 characters in production.');
+      process.exit(1);
+    }
+    const lower = adminPassword.toLowerCase();
+    const weakList = ['admin', 'admin123', 'password', 'password123', '123456', '12345678', 'admin@123', 'root', 'changeme', 'secret'];
+    if (weakList.some(w => lower === w || lower.includes(w))) {
+      console.error('FATAL SECURITY ERROR: ADMIN_PASSWORD is a known weak or default value.');
+      process.exit(1);
+    }
+  }
+}
+
 const express = require('express');
 const path = require('path');
 const cors = require('cors');

@@ -59,16 +59,20 @@ function createAuthRoutes(db) {
       }
 
       const admin = await db.get('SELECT * FROM admin WHERE username = ?', [username]);
-      if (!admin) {
+      // Use dummy hash comparison to prevent timing discrepancy / username enumeration
+      const DUMMY_HASH = '$2a$12$e80yqRzK964p2E61iL8ohe.5U5GZ.Vp9.uG0o1k2l3m4n5o6p7q8r';
+      const passwordToCompare = admin ? admin.password : DUMMY_HASH;
+      const validPassword = bcrypt.compareSync(password, passwordToCompare);
+
+      if (!admin || !validPassword) {
         return res.status(401).json({ error: 'Invalid credentials.' });
       }
 
-      const validPassword = bcrypt.compareSync(password, admin.password);
-      if (!validPassword) {
-        return res.status(401).json({ error: 'Invalid credentials.' });
-      }
-
-      const token = jwt.sign({ id: admin.id, username: admin.username }, JWT_SECRET, { expiresIn: '24h' });
+      const token = jwt.sign(
+        { id: admin.id, username: admin.username },
+        JWT_SECRET,
+        { algorithm: 'HS256', expiresIn: '2h' }
+      );
       res.json({ token, username: admin.username });
     } catch (err) {
       console.error(err);
@@ -95,7 +99,7 @@ function createAuthRoutes(db) {
         return res.status(401).json({ error: 'Current password is incorrect.' });
       }
 
-      const hashed = bcrypt.hashSync(newPassword, 10);
+      const hashed = bcrypt.hashSync(newPassword, 12);
       await db.run('UPDATE admin SET password = ? WHERE id = ?', [hashed, adminId]);
       res.json({ message: 'Password changed successfully.' });
     } catch (err) {
@@ -134,12 +138,16 @@ function createAuthRoutes(db) {
         if (newPassword.length < 6) {
           return res.status(400).json({ error: 'New password must be at least 6 characters.' });
         }
-        const hashed = bcrypt.hashSync(newPassword, 10);
+        const hashed = bcrypt.hashSync(newPassword, 12);
         await db.run('UPDATE admin SET password = ? WHERE id = ?', [hashed, adminId]);
       }
 
       const updatedAdmin = await db.get('SELECT * FROM admin WHERE id = ?', [adminId]);
-      const newToken = jwt.sign({ id: updatedAdmin.id, username: updatedAdmin.username }, JWT_SECRET, { expiresIn: '24h' });
+      const newToken = jwt.sign(
+        { id: updatedAdmin.id, username: updatedAdmin.username },
+        JWT_SECRET,
+        { algorithm: 'HS256', expiresIn: '2h' }
+      );
 
       res.json({
         message: 'Profile updated successfully.',

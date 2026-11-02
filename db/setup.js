@@ -172,8 +172,19 @@ async function initDatabase() {
     if (!process.env.ADMIN_PASSWORD) {
       throw new Error('FATAL ERROR: ADMIN_PASSWORD environment variable is not set. A secure password must be provided to seed the initial admin account.');
     }
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (process.env.NODE_ENV === 'production') {
+      if (adminPassword.length < 12) {
+        throw new Error('FATAL SECURITY ERROR: ADMIN_PASSWORD must be at least 12 characters long in production.');
+      }
+      const lower = adminPassword.toLowerCase();
+      const weakList = ['admin', 'admin123', 'password', 'password123', '123456', '12345678', 'admin@123', 'root', 'changeme', 'secret'];
+      if (weakList.some(w => lower === w || lower.includes(w))) {
+        throw new Error('FATAL SECURITY ERROR: ADMIN_PASSWORD is set to a known weak or default value.');
+      }
+    }
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const hashedPassword = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
+    const hashedPassword = bcrypt.hashSync(adminPassword, 12);
     await db.run('INSERT INTO admin (username, password) VALUES (?, ?)', [adminUsername, hashedPassword]);
     console.log(`✅ Admin account created (${adminUsername})`);
   }
