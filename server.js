@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const { initDatabase, saveDatabase } = require('./db/setup');
 const DbHelper = require('./db/helper');
@@ -87,6 +88,16 @@ async function start() {
   // Initialize database
   const rawDb = await initDatabase();
   const db = new DbHelper(rawDb, saveDatabase);
+
+  // General API rate limiter (300 requests per 15 minutes per IP)
+  const generalApiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please try again later.' }
+  });
+  app.use('/api/', generalApiLimiter);
 
   // API Routes
   app.use('/api/auth', createAuthRoutes(db));

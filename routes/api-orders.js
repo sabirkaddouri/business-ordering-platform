@@ -1,12 +1,30 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { authenticateToken } = require('../middleware/auth');
 
+
+// Strict per-IP limiters to prevent spam and SMS abuse
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // max 5 OTP requests per IP per 15 min
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many verification code requests from this IP. Please try again after 15 minutes.' }
+});
+
+const orderLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // max 10 orders per IP per 15 min
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many orders placed from this IP. Please try again after 15 minutes.' }
+});
 function createOrderRoutes(db) {
   const router = express.Router();
   const otpStore = new Map();
 
   // POST /api/orders/send-otp (mock SMS agent)
-  router.post('/send-otp', async (req, res) => {
+  router.post('/send-otp', otpLimiter, async (req, res) => {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ error: 'Phone is required.' });
     
@@ -47,7 +65,7 @@ function createOrderRoutes(db) {
   });
 
   // POST /api/orders — place order (public)
-  router.post('/', async (req, res) => {
+  router.post('/', orderLimiter, async (req, res) => {
     try {
       const { customer_name, customer_phone, customer_email, customer_address, customer_city, notes, items, otp, promoCode } = req.body;
 

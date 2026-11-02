@@ -4,19 +4,36 @@ const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 
-const loginLimiter = rateLimit({
+// Rate limiting: max 5 failed attempts per 15 minutes per IP and per username
+const loginIpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
-  message: { error: 'Too many login attempts from this IP, please try again after 15 minutes.' },
+  max: 5,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
+  message: { error: 'Too many failed login attempts from this IP. Please try again after 15 minutes.' },
+});
+
+const loginUsernameLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { keyGeneratorIpFallback: false },
+  keyGenerator: (req) => {
+    return req.body && req.body.username
+      ? 'user_' + String(req.body.username).toLowerCase().trim()
+      : req.ip;
+  },
+  message: { error: 'Too many failed login attempts for this account. Please try again after 15 minutes.' },
 });
 
 function createAuthRoutes(db) {
   const router = express.Router();
 
   // POST /api/auth/login
-  router.post('/login', loginLimiter, async (req, res) => {
+  router.post('/login', loginIpLimiter, loginUsernameLimiter, async (req, res) => {
     try {
       const { username, password } = req.body;
 
