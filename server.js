@@ -89,12 +89,26 @@ app.use(
 // Middleware
 app.use(compression());
 
-// Configure CORS for production readiness with environment variable support
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',') 
-  : '*';
+// Configure CORS — explicit whitelist required in production, wildcard only in development
+const corsOriginConfig = (() => {
+  if (process.env.ALLOWED_ORIGINS) {
+    const origins = process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean);
+    return (origin, callback) => {
+      if (!origin || origins.includes(origin)) callback(null, true);
+      else callback(new Error('Not allowed by CORS'));
+    };
+  }
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('WARNING: ALLOWED_ORIGINS is not set in production. CORS will reject all cross-origin requests.');
+    return (origin, callback) => {
+      if (!origin) callback(null, true); // same-origin / server-to-server
+      else callback(new Error('Not allowed by CORS'));
+    };
+  }
+  return '*'; // development: allow all
+})();
 app.use(cors({
-  origin: allowedOrigins,
+  origin: corsOriginConfig,
   credentials: true
 }));
 
