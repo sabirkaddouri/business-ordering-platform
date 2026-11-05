@@ -1,5 +1,30 @@
 require('dotenv').config(); // Load environment variables from .env file for production readiness
 
+// Check for non-production environment connecting to remote database
+if (process.env.NODE_ENV !== 'production' && process.env.DATABASE_URL) {
+  try {
+    const parsed = new URL(process.env.DATABASE_URL);
+    const host = parsed.hostname.toLowerCase();
+    if (host !== 'localhost' && host !== '127.0.0.1' && host !== '::1') {
+      console.warn('\n' + '!'.repeat(72));
+      console.warn('⚠️  WARNING: Production security checks are DISABLED!');
+      console.warn('⚠️  DATABASE_URL points to a remote host (' + host + ') but NODE_ENV is not "production".');
+      console.warn('⚠️  Strict JWT, password strength, CORS, and HSTS protections are INACTIVE.');
+      console.warn('⚠️  Set NODE_ENV=production on your host/server to enable full security.');
+      console.warn('!'.repeat(72) + '\n');
+    }
+  } catch (_) {
+    const lower = process.env.DATABASE_URL.toLowerCase();
+    if (!lower.includes('localhost') && !lower.includes('127.0.0.1')) {
+      console.warn('\n' + '!'.repeat(72));
+      console.warn('⚠️  WARNING: Production security checks are DISABLED!');
+      console.warn('⚠️  DATABASE_URL points to a remote host but NODE_ENV is not "production".');
+      console.warn('⚠️  Set NODE_ENV=production on your host/server to enable full security.');
+      console.warn('!'.repeat(72) + '\n');
+    }
+  }
+}
+
 // Validate critical security env vars in production
 if (process.env.NODE_ENV === 'production') {
   const jwtSecret = process.env.JWT_SECRET;
