@@ -91,6 +91,71 @@ A full-stack ordering and e-commerce platform for small businesses, with an admi
 | :---: | :---: |
 | ![Admin Dashboard](docs/screenshots/admin-dashboard.png) | ![Admin Orders](docs/screenshots/admin-orders.png) |
 
+
+## Security
+
+This application includes the following security hardening measures:
+
+### HTTP Security
+- **Helmet** security headers with a tailored Content-Security-Policy
+- **HSTS** enabled in production with preload
+- **X-Powered-By** header disabled
+- **HTTP-to-HTTPS** redirect in production
+
+### Rate Limiting & Brute Force Protection
+- Login lockout: max 5 failed attempts per 15 minutes (per IP and per username)
+- OTP endpoint: max 5 requests per IP per 15 minutes
+- Order endpoint: max 10 requests per IP per 15 minutes
+- General API rate limiter: 300 requests per 15 minutes per IP
+
+### Input Validation
+- All POST/PUT/PATCH bodies validated with **Zod** schemas (`.strict()` — unknown fields rejected)
+- Route parameters validated as positive integers
+- JSON body size limit: 100KB
+- All SQL queries use parameterized placeholders
+
+### Authentication
+- JWT tokens pinned to HS256 algorithm with 2-hour expiry
+- bcrypt cost factor 12
+- Timing-safe login (dummy hash comparison for non-existent users)
+- Production startup checks: JWT_SECRET ≥ 32 chars, ADMIN_PASSWORD ≥ 12 chars and not a known weak value
+
+### File Uploads
+- Restricted to JPEG, PNG, and WebP only (no GIF)
+- Magic-byte / file-header validation (prevents extension spoofing)
+- 5MB file size limit
+
+### XSS Prevention
+- All dynamic user content escaped with `escapeHtml()` in both storefront and admin
+
+### CORS
+- Production requires explicit `ALLOWED_ORIGINS` whitelist — no wildcard fallback
+
+### Error Handling
+- Central error handler hides stack traces and internal details in production
+- OTP codes are never logged; only last 4 digits of phone are logged
+- API 404 handler returns clean JSON error
+
+### Required Production Environment Variables
+
+| Variable | Description |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | ≥ 32 character secret for JWT signing |
+| `ADMIN_USERNAME` | Admin login username |
+| `ADMIN_PASSWORD` | ≥ 12 character admin password (not a common weak value) |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins |
+| `NODE_ENV` | Set to `production` for all security checks |
+
+### Optional Environment Variables
+
+| Variable | Description |
+| --- | --- |
+| `ENFORCE_OTP` | Set to `true` to require OTP verification for orders |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name for image uploads |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
+
 ## License
 
 MIT License
