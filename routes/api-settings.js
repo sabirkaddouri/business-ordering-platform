@@ -156,7 +156,7 @@ function createSettingsRoutes(db) {
       res.json({ message: 'Settings saved successfully.' });
     } catch (err) {
       console.error('Settings save error:', err);
-      res.status(500).json({ error: 'Server error: ' + err.message });
+      res.status(500).json({ error: 'Server error.' });
     }
   });
 

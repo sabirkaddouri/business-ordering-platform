@@ -122,6 +122,11 @@ async function start() {
   });
   app.use('/api/', generalApiLimiter);
 
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
   // API Routes
   app.use('/api/auth', createAuthRoutes(db));
   app.use('/api/products', createProductRoutes(db));
@@ -131,6 +136,30 @@ async function start() {
   app.use('/api/promotions', createPromotionRoutes(db));
   app.use('/api/notifications', createNotificationRoutes(db));
   app.use('/api/categories', createCategoryRoutes(db));
+
+  // API 404 handler
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'Not found.' });
+  });
+
+  // Central error handler — no stack traces or internal details in production
+  app.use((err, req, res, next) => {
+    // Handle multer file size errors
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File too large. Maximum size is 5MB.' });
+    }
+    // Handle multer file filter errors
+    if (err.message === 'Only image files are allowed.') {
+      return res.status(400).json({ error: err.message });
+    }
+
+    console.error('Unhandled error:', err);
+    const statusCode = err.status || err.statusCode || 500;
+    const message = process.env.NODE_ENV === 'production'
+      ? 'Internal server error.'
+      : err.message || 'Internal server error.';
+    res.status(statusCode).json({ error: message });
+  });
 
   // Fallback routes
   app.get('/admin/*', (req, res) => {

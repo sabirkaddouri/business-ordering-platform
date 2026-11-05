@@ -68,7 +68,7 @@ function createOrderRoutes(db) {
       expires: Date.now() + 5 * 60 * 1000 // 5 minutes
     });
 
-    console.log(`\n=== 📱 MOCK SMS AGENT ===\nTo: ${phone}\nMessage: Your Shop OTP is ${code}. Expires in 5m.\n=========================\n`);
+    console.log(`[OTP] Verification code sent to phone ending ...${phone.slice(-4)}`);
     res.json({ message: 'OTP sent successfully.' });
   });
 
