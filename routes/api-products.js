@@ -2,7 +2,6 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const FileType = require('file-type');
 const { authenticateToken } = require('../middleware/auth');
 const { validate, z, idParamSchema } = require('../middleware/validate');
 
@@ -64,7 +63,8 @@ async function validateImageMagicBytes(req, res, next) {
 
     const filePath = req.file.path || path.join(req.file.destination, req.file.filename);
     const fileBuffer = fs.readFileSync(filePath);
-    const type = await FileType.fromBuffer(fileBuffer);
+    const { fileTypeFromBuffer } = await import('file-type');
+    const type = await fileTypeFromBuffer(fileBuffer);
 
     if (!type || !ALLOWED_MIME_TYPES.has(type.mime)) {
       // Delete the rejected file
