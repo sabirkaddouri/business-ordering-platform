@@ -145,13 +145,18 @@ This application includes the following security hardening measures:
 | `ADMIN_USERNAME` | Admin login username |
 | `ADMIN_PASSWORD` | ≥ 12 character admin password (not a common weak value) |
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins |
-| `NODE_ENV` | Set to `production` for all security checks |
+| `NODE_ENV` | Must be set to `production` on the host server to enable all production security checks (HSTS, CSP, JWT length, password strength, CORS restrictions, error masking) |
+
+> [!IMPORTANT]
+> **Production Deployment Notes:**
+> - `NODE_ENV=production` **must be set on the host server** (e.g., Railway, Render, VPS) to activate strict security checks and protections.
+> - `ENFORCE_OTP` **must stay `false`** until a real SMS provider (such as Twilio) is connected; otherwise orders will be blocked in production since the built-in SMS agent is a development mock.
 
 ### Optional Environment Variables
 
 | Variable | Description |
 | --- | --- |
-| `ENFORCE_OTP` | Set to `true` to require OTP verification for orders |
+| `ENFORCE_OTP` | Must stay `false` until a real SMS provider is connected. Set to `true` only after configuring a live SMS provider |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name for image uploads |
 | `CLOUDINARY_API_KEY` | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret |
