@@ -12,7 +12,7 @@
     "playwright": "^1.64.1"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.3",
     "cloudinary": "^2.11.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
