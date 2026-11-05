@@ -50,6 +50,7 @@ function setLanguage(lang) {
 
   populateCategorySelect();
   if (allProducts.length) renderProductsTable();
+  if (getLockoutEndTime()) updateLockoutUI();
     if (typeof renderPromoProductCheckboxes === "function") renderPromoProductCheckboxes(); // Init promo products
   if (document.getElementById('dashboard').style.display !== 'none') {
     loadOrders();
@@ -67,11 +68,117 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     showLogin();
   }
+  restoreLockoutIfActive();
   setupEventListeners();
 });
 
+// --- Login Lockout & Countdown Helpers ---
+const LOCKOUT_STORAGE_KEY = 'sd_admin_lockout_until';
+let lockoutTimer = null;
+
+function getLockoutEndTime() {
+  try {
+    const raw = sessionStorage.getItem(LOCKOUT_STORAGE_KEY);
+    const time = parseInt(raw, 10);
+    return !isNaN(time) && time > Date.now() ? time : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function setLockoutEndTime(timeMs) {
+  try {
+    if (timeMs) {
+      sessionStorage.setItem(LOCKOUT_STORAGE_KEY, String(timeMs));
+    } else {
+      sessionStorage.removeItem(LOCKOUT_STORAGE_KEY);
+    }
+  } catch (_) {}
+}
+
+function setLoginFormDisabled(disabled) {
+  const userInp = document.getElementById('loginUsername');
+  const passInp = document.getElementById('loginPassword');
+  const submitBtn = document.querySelector('#loginForm button[type="submit"]');
+  if (userInp) userInp.disabled = disabled;
+  if (passInp) passInp.disabled = disabled;
+  if (submitBtn) submitBtn.disabled = disabled;
+}
+
+function formatCountdown(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function renderLockoutMessage(secondsRemaining) {
+  const errorEl = document.getElementById('loginError');
+  if (!errorEl) return;
+  const formatted = formatCountdown(secondsRemaining);
+  const dict = (window.i18nAdminStore && window.i18nAdminStore[currentLang]?.login) || {};
+  const template = dict.lockout || 'Too many failed attempts. Try again in {time}';
+  errorEl.textContent = template.replace('{time}', formatted);
+}
+
+function updateLockoutUI() {
+  const end = getLockoutEndTime();
+  const errorEl = document.getElementById('loginError');
+  if (!end) {
+    if (lockoutTimer) {
+      clearInterval(lockoutTimer);
+      lockoutTimer = null;
+    }
+    setLoginFormDisabled(false);
+    if (errorEl) errorEl.textContent = '';
+    return;
+  }
+
+  const diffSec = Math.ceil((end - Date.now()) / 1000);
+  if (diffSec <= 0) {
+    if (lockoutTimer) {
+      clearInterval(lockoutTimer);
+      lockoutTimer = null;
+    }
+    setLockoutEndTime(null);
+    setLoginFormDisabled(false);
+    if (errorEl) errorEl.textContent = '';
+  } else {
+    setLoginFormDisabled(true);
+    renderLockoutMessage(diffSec);
+  }
+}
+
+function startLockoutCountdown(seconds) {
+  if (lockoutTimer) {
+    clearInterval(lockoutTimer);
+    lockoutTimer = null;
+  }
+  const endTime = Date.now() + seconds * 1000;
+  setLockoutEndTime(endTime);
+  updateLockoutUI();
+
+  lockoutTimer = setInterval(() => {
+    updateLockoutUI();
+  }, 1000);
+}
+
+function restoreLockoutIfActive() {
+  const end = getLockoutEndTime();
+  if (end && end > Date.now()) {
+    updateLockoutUI();
+    if (!lockoutTimer) {
+      lockoutTimer = setInterval(() => {
+        updateLockoutUI();
+      }, 1000);
+    }
+  } else {
+    setLockoutEndTime(null);
+  }
+}
+
 // --- Auth ---
 function showLogin() {
+  restoreLockoutIfActive();
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('dashboard').style.display = 'none';
 }
@@ -85,6 +192,8 @@ function showDashboard() {
 
 async function login(e) {
   e.preventDefault();
+  if (getLockoutEndTime()) return;
+
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
   const errorEl = document.getElementById('loginError');
@@ -99,7 +208,20 @@ async function login(e) {
     });
 
     const data = await res.json();
+
+    if (res.status === 429) {
+      const waitSec = data.retryAfterSeconds || 60;
+      startLockoutCountdown(waitSec);
+      return;
+    }
+
     if (!res.ok) throw new Error(data.error || i18nAdminStore[currentLang].login.err);
+
+    setLockoutEndTime(null);
+    if (lockoutTimer) {
+      clearInterval(lockoutTimer);
+      lockoutTimer = null;
+    }
 
     token = data.token;
     adminUsername = data.username;

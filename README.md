@@ -156,6 +156,8 @@ This application includes the following security hardening measures:
 
 | Variable | Description |
 | --- | --- |
+| `LOGIN_MAX_ATTEMPTS` | Maximum failed login attempts before lockout (default: 5) |
+| `LOGIN_LOCKOUT_MINUTES` | Lockout duration in minutes after reaching max failed login attempts (default: 10) |
 | `ENFORCE_OTP` | Must stay `false` until a real SMS provider is connected. Set to `true` only after configuring a live SMS provider |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name for image uploads |
 | `CLOUDINARY_API_KEY` | Cloudinary API key |

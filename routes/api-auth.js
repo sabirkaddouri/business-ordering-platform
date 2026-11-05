@@ -21,29 +21,65 @@ const updateProfileSchema = z.object({
   newPassword: z.string().min(12, 'New password must be at least 12 characters').max(255).optional()
 }).strict();
 
-// Rate limiting: max 5 failed attempts per 15 minutes per IP and per username
-const loginIpLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+// Configurable admin login lockout settings (defaults: 5 attempts, 10 minutes)
+const LOGIN_MAX_ATTEMPTS = parseInt(process.env.LOGIN_MAX_ATTEMPTS, 10) || 5;
+const LOGIN_LOCKOUT_MINUTES = parseInt(process.env.LOGIN_LOCKOUT_MINUTES, 10) || 10;
+const LOGIN_WINDOW_MS = LOGIN_LOCKOUT_MINUTES * 60 * 1000;
+
+let loginIpLimiter, loginUsernameLimiter;
+
+const getIpKey = (req) => req.ip;
+const getUsernameKey = (req) => {
+  return req.body && req.body.username
+    ? 'user_' + String(req.body.username).toLowerCase().trim()
+    : req.ip;
+};
+
+function createLockoutHandler(getOtherLimiter, getOtherKey) {
+  return async (req, res) => {
+    let resetTime = req.rateLimit?.resetTime;
+    const otherLimiter = getOtherLimiter();
+    if (otherLimiter && typeof otherLimiter.getKey === 'function' && getOtherKey) {
+      try {
+        const otherKey = getOtherKey(req);
+        const otherRecord = await otherLimiter.getKey(otherKey);
+        if (otherRecord && otherRecord.totalHits >= LOGIN_MAX_ATTEMPTS) {
+          if (otherRecord.resetTime && (!resetTime || new Date(otherRecord.resetTime) > new Date(resetTime))) {
+            resetTime = otherRecord.resetTime;
+          }
+        }
+      } catch (_) {}
+    }
+
+    const msUntilReset = resetTime ? new Date(resetTime).getTime() - Date.now() : LOGIN_WINDOW_MS;
+    const retryAfterSeconds = Math.max(1, Math.ceil(msUntilReset / 1000));
+
+    res.set('Retry-After', String(retryAfterSeconds));
+    return res.status(429).json({
+      error: 'Too many failed login attempts.',
+      retryAfterSeconds
+    });
+  };
+}
+
+loginIpLimiter = rateLimit({
+  windowMs: LOGIN_WINDOW_MS,
+  max: LOGIN_MAX_ATTEMPTS,
   skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many failed login attempts from this IP. Please try again after 15 minutes.' },
+  handler: createLockoutHandler(() => loginUsernameLimiter, getUsernameKey)
 });
 
-const loginUsernameLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+loginUsernameLimiter = rateLimit({
+  windowMs: LOGIN_WINDOW_MS,
+  max: LOGIN_MAX_ATTEMPTS,
   skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   validate: { keyGeneratorIpFallback: false },
-  keyGenerator: (req) => {
-    return req.body && req.body.username
-      ? 'user_' + String(req.body.username).toLowerCase().trim()
-      : req.ip;
-  },
-  message: { error: 'Too many failed login attempts for this account. Please try again after 15 minutes.' },
+  keyGenerator: getUsernameKey,
+  handler: createLockoutHandler(() => loginIpLimiter, getIpKey)
 });
 
 function createAuthRoutes(db) {

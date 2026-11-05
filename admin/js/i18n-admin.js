@@ -1,6 +1,6 @@
 const i18nAdmin = {
   en: {
-    login: { title: "Admin Dashboard", user: "Username", pass: "Password", btn: "Sign In", err: "Login failed" },
+    login: { title: "Admin Dashboard", user: "Username", pass: "Password", btn: "Sign In", err: "Login failed", lockout: "Too many failed attempts. Try again in {time}" },
     sidebar: { overview: "Overview", analytics: "Analytics", products: "Products", promotions: "Promotions", orders: "Orders", settings: "Settings", logout: "Logout" },
     topbar: { title: "Overview", admin: "Admin" },
     stats: { orders: "Total Orders", pending: "Pending", rev: "Revenue", products: "Products" },
@@ -55,7 +55,7 @@ const i18nAdmin = {
     }
   },
   fr: {
-    login: { title: "Tableau de Bord", user: "Nom d'utilisateur", pass: "Mot de passe", btn: "Se connecter", err: "Échec de connexion" },
+    login: { title: "Tableau de Bord", user: "Nom d'utilisateur", pass: "Mot de passe", btn: "Se connecter", err: "Échec de connexion", lockout: "Trop de tentatives échouées. Réessayez dans {time}" },
     sidebar: { overview: "Aperçu", analytics: "Analytiques", products: "Produits", promotions: "Promotions", orders: "Commandes", settings: "Paramètres", logout: "Déconnexion" },
     topbar: { title: "Aperçu", admin: "Admin" },
     stats: { orders: "Commandes Totales", pending: "En attente", rev: "Revenus", products: "Produits" },
@@ -110,7 +110,7 @@ const i18nAdmin = {
     }
   },
   ar: {
-    login: { title: "لوحة تحكم الإدارة", user: "اسم المستخدم", pass: "كلمة المرور", btn: "تسجيل الدخول", err: "فشل تسجيل الدخول" },
+    login: { title: "لوحة تحكم الإدارة", user: "اسم المستخدم", pass: "كلمة المرور", btn: "تسجيل الدخول", err: "فشل تسجيل الدخول", lockout: "محاولات فاشلة كثيرة جدًا. يرجى المحاولة بعد \u200E{time}\u200E" },
     sidebar: { overview: "نظرة عامة", analytics: "التحليلات", products: "المنتجات", promotions: "العروض", orders: "الطلبات", settings: "الإعدادات", logout: "تسجيل الخروج" },
     topbar: { title: "نظرة عامة", admin: "المدير" },
     stats: { orders: "إجمالي الطلبات", pending: "قيد الانتظار", rev: "الإيرادات", products: "المنتجات" },
