@@ -785,6 +785,11 @@ async function updateAdminProfile(e) {
   const newPw = document.getElementById('profileNewPassword').value;
   const confirm = document.getElementById('profileConfirmPassword').value;
 
+  if (newPw && newPw.length < 12) {
+    const msg = (i18nAdminStore[currentLang].js && i18nAdminStore[currentLang].js.passLengthErr) || 'New password must be at least 12 characters.';
+    showAdminToast(msg, 'error');
+    return;
+  }
   if (newPw && newPw !== confirm) {
     showAdminToast(i18nAdminStore[currentLang].js.passErr, 'error');
     return;

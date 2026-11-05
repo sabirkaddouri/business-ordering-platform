@@ -12,13 +12,13 @@ const loginSchema = z.object({
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required').max(255),
-  newPassword: z.string().min(6, 'New password must be at least 6 characters').max(255)
+  newPassword: z.string().min(12, 'New password must be at least 12 characters').max(255)
 }).strict();
 
 const updateProfileSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required').max(255),
   newUsername: z.string().trim().min(1).max(100).optional(),
-  newPassword: z.string().min(6, 'New password must be at least 6 characters').max(255).optional()
+  newPassword: z.string().min(12, 'New password must be at least 12 characters').max(255).optional()
 }).strict();
 
 // Rate limiting: max 5 failed attempts per 15 minutes per IP and per username
@@ -90,8 +90,8 @@ function createAuthRoutes(db) {
         return res.status(400).json({ error: 'Current and new passwords are required.' });
       }
 
-      if (newPassword.length < 6) {
-        return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+      if (newPassword.length < 12) {
+        return res.status(400).json({ error: 'New password must be at least 12 characters.' });
       }
 
       const admin = await db.get('SELECT * FROM admin WHERE id = ?', [adminId]);
@@ -135,8 +135,8 @@ function createAuthRoutes(db) {
       }
 
       if (newPassword && newPassword.trim() !== '') {
-        if (newPassword.length < 6) {
-          return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+        if (newPassword.length < 12) {
+          return res.status(400).json({ error: 'New password must be at least 12 characters.' });
         }
         const hashed = bcrypt.hashSync(newPassword, 12);
         await db.run('UPDATE admin SET password = ? WHERE id = ?', [hashed, adminId]);
