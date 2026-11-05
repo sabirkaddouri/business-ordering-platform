@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const FileType = require('file-type');
 const { authenticateToken } = require('../middleware/auth');
 const { validate, z, idParamSchema } = require('../middleware/validate');
 
@@ -21,8 +22,8 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
   storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-      folder: 'sweet-delights',
-      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp']
+      folder: 'shop-uploads',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp']
     }
   });
 } else {
@@ -43,13 +44,40 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|webp/;
+    const allowed = /jpeg|jpg|png|webp/;
     const ext = allowed.test(path.extname(file.originalname).toLowerCase());
     const mime = allowed.test(file.mimetype);
     if (ext && mime) cb(null, true);
     else cb(new Error('Only image files are allowed.'));
   }
 });
+
+// Validate uploaded file's real type via magic bytes (prevents extension spoofing)
+const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+async function validateImageMagicBytes(req, res, next) {
+  if (!req.file) return next();
+
+  try {
+    // For Cloudinary uploads, the file is already validated and uploaded; skip local check
+    if (req.file.path && req.file.path.startsWith('http')) return next();
+
+    const filePath = req.file.path || path.join(req.file.destination, req.file.filename);
+    const fileBuffer = fs.readFileSync(filePath);
+    const type = await FileType.fromBuffer(fileBuffer);
+
+    if (!type || !ALLOWED_MIME_TYPES.has(type.mime)) {
+      // Delete the rejected file
+      try { fs.unlinkSync(filePath); } catch (_) {}
+      return res.status(400).json({ error: 'Invalid image file. Only JPEG, PNG, and WebP images are allowed.' });
+    }
+
+    next();
+  } catch (err) {
+    console.error('Magic bytes validation error:', err);
+    return res.status(500).json({ error: 'File validation failed.' });
+  }
+}
 
 
 const createProductSchema = z.object({
@@ -154,7 +182,7 @@ function createProductRoutes(db) {
   });
 
   // POST /api/products — create (admin only)
-  router.post('/', authenticateToken, upload.single('image'), validate({ body: createProductSchema }), async (req, res) => {
+  router.post('/', authenticateToken, upload.single('image'), validateImageMagicBytes, validate({ body: createProductSchema }), async (req, res) => {
     try {
       const { name, description, price, category_id, featured, available, stock, trackStock } = req.body;
 
@@ -189,7 +217,7 @@ function createProductRoutes(db) {
   });
 
   // PUT /api/products/:id — update (admin only)
-  router.put('/:id', authenticateToken, upload.single('image'), validate({ params: idParamSchema, body: updateProductSchema }), async (req, res) => {
+  router.put('/:id', authenticateToken, upload.single('image'), validateImageMagicBytes, validate({ params: idParamSchema, body: updateProductSchema }), async (req, res) => {
     try {
       const existing = await db.get('SELECT * FROM products WHERE id = ?', [parseInt(req.params.id)]);
       if (!existing) return res.status(404).json({ error: 'Product not found.' });
