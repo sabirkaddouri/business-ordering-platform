@@ -26,5 +26,8 @@
     "multer-storage-cloudinary": "^4.0.0",
     "pg": "^8.20.0",
     "zod": "^4.6.7"
+  },
+  "overrides": {
+    "cloudinary": "^2.11.0"
   }
 }
