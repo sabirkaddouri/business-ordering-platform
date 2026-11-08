@@ -520,7 +520,6 @@ function renderOrdersTable(orders) {
       </td>
       <td>${formatDate(o.created_at)}</td>
       <td>
-        <button class="btn-icon" onclick="viewOrderDetail(${o.id})" title="View">👁️</button>
         <button class="btn-icon danger" onclick="deleteOrder(${o.id})" title="Delete">🗑️</button>
       </td>
     </tr>

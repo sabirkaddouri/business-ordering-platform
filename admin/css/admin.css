@@ -1270,3 +1270,24 @@ tr.order-row:focus-visible {
 tr.order-row:focus-visible td {
   background: var(--color-surface);
 }
+
+/* === ORDERS TABLE ACTIONS COLUMN === */
+#ordersTable th:last-child,
+#ordersTable td:last-child {
+  width: 90px;
+  min-width: 90px;
+  text-align: center;
+  padding: 13px 12px;
+}
+
+html[dir="rtl"] #ordersTable th:last-child,
+html[dir="rtl"] #ordersTable td:last-child,
+html[dir="ltr"] #ordersTable th:last-child,
+html[dir="ltr"] #ordersTable td:last-child {
+  text-align: center;
+}
+
+#ordersTable td:last-child .btn-icon {
+  margin: 0 auto;
+}
+
