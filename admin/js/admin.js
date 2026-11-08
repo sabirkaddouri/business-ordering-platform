@@ -482,7 +482,7 @@ function renderRecentOrders(orders) {
   }
 
   tbody.innerHTML = orders.map(o => `
-    <tr>
+    <tr class="order-row" data-order-id="${o.id}" tabindex="0">
       <td>#${o.id}</td>
       <td>${escapeHtml(o.customer_name)}</td>
       <td>${o.items ? o.items.length : 0} ${i18nAdminStore[currentLang].js.items}</td>
@@ -501,7 +501,7 @@ function renderOrdersTable(orders) {
   }
 
   tbody.innerHTML = orders.map(o => `
-    <tr>
+    <tr class="order-row" data-order-id="${o.id}" tabindex="0">
       <td>#${o.id}</td>
       <td>${escapeHtml(o.customer_name)}</td>
       <td>${escapeHtml(o.customer_phone)}</td>
@@ -984,6 +984,39 @@ function setupEventListeners() {
       reader.readAsDataURL(file);
     }
   });
+
+  // Order table row click & keydown delegation (registered once)
+  const handleOrderRowClick = (e) => {
+    if (e.target.closest('select, button, a, input, label')) return;
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim().length > 0) return;
+    const row = e.target.closest('tr.order-row[data-order-id]');
+    if (!row) return;
+    const id = parseInt(row.dataset.orderId, 10);
+    if (id) viewOrderDetail(id);
+  };
+
+  const handleOrderRowKeydown = (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    if (e.target.closest('select, button, a, input, label')) return;
+    const row = e.target.closest('tr.order-row[data-order-id]');
+    if (!row) return;
+    if (e.key === ' ') e.preventDefault();
+    const id = parseInt(row.dataset.orderId, 10);
+    if (id) viewOrderDetail(id);
+  };
+
+  const ordersBody = document.getElementById('ordersBody');
+  if (ordersBody) {
+    ordersBody.addEventListener('click', handleOrderRowClick);
+    ordersBody.addEventListener('keydown', handleOrderRowKeydown);
+  }
+
+  const recentOrdersBody = document.getElementById('recentOrdersBody');
+  if (recentOrdersBody) {
+    recentOrdersBody.addEventListener('click', handleOrderRowClick);
+    recentOrdersBody.addEventListener('keydown', handleOrderRowKeydown);
+  }
 
   // Order filter
   document.getElementById('orderStatusFilter').addEventListener('change', loadOrders);

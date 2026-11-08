@@ -1242,3 +1242,31 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* === TAPPABLE / CLICKABLE ORDER ROWS === */
+tr.order-row {
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(196, 98, 45, 0.2);
+  transition: background var(--transition-fast);
+}
+
+tr.order-row:hover td {
+  background: var(--color-surface);
+}
+
+tr.order-row:active td {
+  background: var(--color-primary-light);
+}
+
+tr.order-row:focus {
+  outline: none;
+}
+
+tr.order-row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+tr.order-row:focus-visible td {
+  background: var(--color-surface);
+}
