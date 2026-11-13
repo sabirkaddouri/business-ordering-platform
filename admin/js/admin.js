@@ -1948,13 +1948,51 @@ let cityOrdersData = [];
 let cityChartInstance = null;
 
 async function loadCityDelivery() {
+  // Show loading state
+  const container = document.getElementById('cityGroupsContainer') || document.getElementById('cityDeliveryContent');
+  if (container) container.style.opacity = '0.4';
+
   try {
-    const res = await fetch(`${API}/api/orders?limit=10000`, { headers: authHeaders() });
-    if (!res.ok) return;
-    const data = await res.json();
-    
+    const PAGE_LIMIT = 100;
+    const MAX_PAGES = 50;
+    let allOrders = [];
+    let page = 1;
+    let totalPages = 1;
+    let cappedWarning = false;
+
+    do {
+      const res = await fetch(`${API}/api/orders?limit=${PAGE_LIMIT}&page=${page}`, { headers: authHeaders() });
+      if (!res.ok) {
+        if (container) container.style.opacity = '';
+        return;
+      }
+      const data = await res.json();
+      const pageOrders = data.orders || [];
+      allOrders = allOrders.concat(pageOrders);
+
+      const total = data.total || 0;
+      totalPages = total > 0 ? Math.ceil(total / PAGE_LIMIT) : page;
+
+      if (page >= MAX_PAGES) {
+        cappedWarning = true;
+        break;
+      }
+      page++;
+    } while (page <= totalPages);
+
+    if (cappedWarning) {
+      console.warn(`[City Delivery] Loaded only ${MAX_PAGES} pages (${allOrders.length} orders). Some orders may be missing.`);
+      const warn = document.getElementById('cityPageCapWarning');
+      if (warn) { warn.style.display = ''; }
+    } else {
+      const warn = document.getElementById('cityPageCapWarning');
+      if (warn) { warn.style.display = 'none'; }
+    }
+
+    if (container) container.style.opacity = '';
+
     // Fallback: if customer_city is not populated, try to guess from customer_address or use "Inconnue"
-    cityOrdersData = (data.orders || []).map(o => {
+    cityOrdersData = allOrders.map(o => {
       let city = (o.customer_city || '').trim();
       if (!city) {
         // Try to match against the predefined list of cities
