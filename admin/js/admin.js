@@ -447,60 +447,75 @@ function renderProductsTable() {
   }).join('');
 }
 
-async function loadOrders() {
+let currentOrdersPage = 1;
+const ordersLimit = 50;
+let totalOrdersCount = 0;
+const loadedOrderIds = new Set();
+let orderSearchDebounceTimer = null;
+
+async function loadOrders(append = false) {
   try {
-    const status = document.getElementById('orderStatusFilter').value;
-    const url = status ? `${API}/api/orders?status=${status}` : `${API}/api/orders`;
+    if (!append) {
+      currentOrdersPage = 1;
+      loadedOrderIds.clear();
+    } else {
+      currentOrdersPage++;
+    }
+
+    const status = document.getElementById('orderStatusFilter')?.value || '';
+    const q = document.getElementById('orderSearchInput')?.value?.trim() || '';
+    const from = document.getElementById('orderDateFrom')?.value || '';
+    const to = document.getElementById('orderDateTo')?.value || '';
+
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (q) params.append('q', q);
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    params.append('page', currentOrdersPage);
+    params.append('limit', ordersLimit);
+
+    const url = `${API}/api/orders?${params.toString()}`;
     const res = await fetch(url, { headers: authHeaders() });
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) return logout();
       return;
     }
     const data = await res.json();
-    renderOrdersTable(data.orders);
+    totalOrdersCount = data.total ?? (data.orders ? data.orders.length : 0);
+    renderOrdersTable(data.orders, append);
+    updateOrdersPagination(data.orders?.length || 0, totalOrdersCount, append);
   } catch (err) {
     console.error('Failed to load orders:', err);
   }
 }
 
-async function loadRecentOrders() {
-  try {
-    const res = await fetch(`${API}/api/orders?limit=5`, { headers: authHeaders() });
-    if (!res.ok) return;
-    const data = await res.json();
-    renderRecentOrders(data.orders);
-  } catch (err) {
-    console.error('Failed to load recent orders:', err);
-  }
-}
-
-function renderRecentOrders(orders) {
-  const tbody = document.getElementById('recentOrdersBody');
-  if (!orders || orders.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-light);">${i18nAdminStore[currentLang].ordPanel.empty}</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = orders.map(o => `
-    <tr class="order-row" data-order-id="${o.id}" tabindex="0">
-      <td>#${o.id}</td>
-      <td>${escapeHtml(o.customer_name)}</td>
-      <td>${o.items ? o.items.length : 0} ${i18nAdminStore[currentLang].js.items}</td>
-      <td>${o.total.toFixed(2)} MAD</td>
-      <td><span class="status-badge status-${o.status}">${o.status}</span></td>
-      <td>${formatDate(o.created_at)}</td>
-    </tr>
-  `).join('');
-}
-
-function renderOrdersTable(orders) {
+function renderOrdersTable(orders, append = false) {
   const tbody = document.getElementById('ordersBody');
-  if (!orders || orders.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-light);">${i18nAdminStore[currentLang].ordPanel.empty}</td></tr>`;
-    return;
+  const hasFilters = Boolean(
+    document.getElementById('orderSearchInput')?.value?.trim() ||
+    document.getElementById('orderDateFrom')?.value ||
+    document.getElementById('orderDateTo')?.value ||
+    document.getElementById('orderStatusFilter')?.value
+  );
+
+  if (!append) {
+    if (!orders || orders.length === 0) {
+      const msg = hasFilters
+        ? (i18nAdminStore[currentLang]?.ordPanel?.noMatch || i18nAdminStore[currentLang]?.ordPanel?.empty || 'No orders found.')
+        : (i18nAdminStore[currentLang]?.ordPanel?.empty || 'No orders found.');
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-light);"><div style="font-size:24px;margin-bottom:8px;">🔍</div><div>${escapeHtml(msg)}</div></td></tr>`;
+      updateOrdersPagination(0, 0, false);
+      return;
+    }
+    loadedOrderIds.clear();
   }
 
-  tbody.innerHTML = orders.map(o => `
+  // Filter out any duplicates
+  const newOrders = (orders || []).filter(o => !loadedOrderIds.has(o.id));
+  newOrders.forEach(o => loadedOrderIds.add(o.id));
+
+  const rowsHtml = newOrders.map(o => `
     <tr class="order-row" data-order-id="${o.id}" tabindex="0">
       <td>#${o.id}</td>
       <td>${escapeHtml(o.customer_name)}</td>
@@ -524,6 +539,31 @@ function renderOrdersTable(orders) {
       </td>
     </tr>
   `).join('');
+
+  if (!append) {
+    tbody.innerHTML = rowsHtml;
+  } else if (rowsHtml) {
+    tbody.insertAdjacentHTML('beforeend', rowsHtml);
+  }
+}
+
+function updateOrdersPagination(batchCount, total, append = false) {
+  const countEl = document.getElementById('ordersCountInfo');
+  const loadMoreBtn = document.getElementById('orderLoadMoreBtn');
+  const shownCount = loadedOrderIds.size;
+
+  if (countEl) {
+    const template = i18nAdminStore[currentLang]?.ordPanel?.showingOrders || 'Showing {shown} of {total} orders';
+    countEl.textContent = template.replace('{shown}', shownCount).replace('{total}', total);
+  }
+
+  if (loadMoreBtn) {
+    if (shownCount < total) {
+      loadMoreBtn.style.display = 'inline-flex';
+    } else {
+      loadMoreBtn.style.display = 'none';
+    }
+  }
 }
 
 // --- Product CRUD ---
@@ -1017,8 +1057,69 @@ function setupEventListeners() {
     recentOrdersBody.addEventListener('keydown', handleOrderRowKeydown);
   }
 
-  // Order filter
-  document.getElementById('orderStatusFilter').addEventListener('change', loadOrders);
+  // Order filters & search
+  const orderSearchInput = document.getElementById('orderSearchInput');
+  if (orderSearchInput) {
+    orderSearchInput.addEventListener('input', () => {
+      clearTimeout(orderSearchDebounceTimer);
+      orderSearchDebounceTimer = setTimeout(() => {
+        loadOrders(false);
+      }, 300);
+    });
+  }
+
+  const dateFrom = document.getElementById('orderDateFrom');
+  if (dateFrom) dateFrom.addEventListener('change', () => loadOrders(false));
+
+  const dateTo = document.getElementById('orderDateTo');
+  if (dateTo) dateTo.addEventListener('change', () => loadOrders(false));
+
+  const chipPending = document.getElementById('orderChipPending');
+  const orderStatusFilter = document.getElementById('orderStatusFilter');
+  if (chipPending && orderStatusFilter) {
+    chipPending.addEventListener('click', () => {
+      if (orderStatusFilter.value === 'pending') {
+        orderStatusFilter.value = '';
+        chipPending.classList.remove('active');
+      } else {
+        orderStatusFilter.value = 'pending';
+        chipPending.classList.add('active');
+      }
+      loadOrders(false);
+    });
+  }
+
+  if (orderStatusFilter) {
+    orderStatusFilter.addEventListener('change', () => {
+      if (chipPending) {
+        if (orderStatusFilter.value === 'pending') {
+          chipPending.classList.add('active');
+        } else {
+          chipPending.classList.remove('active');
+        }
+      }
+      loadOrders(false);
+    });
+  }
+
+  const clearFiltersBtn = document.getElementById('orderClearFilters');
+  if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', () => {
+      if (orderSearchInput) orderSearchInput.value = '';
+      if (dateFrom) dateFrom.value = '';
+      if (dateTo) dateTo.value = '';
+      if (orderStatusFilter) orderStatusFilter.value = '';
+      if (chipPending) chipPending.classList.remove('active');
+      loadOrders(false);
+    });
+  }
+
+  const loadMoreBtn = document.getElementById('orderLoadMoreBtn');
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', () => {
+      loadOrders(true);
+    });
+  }
 
   // Order detail close
   document.getElementById('orderDetailClose').addEventListener('click', () => {

@@ -440,10 +440,17 @@
 
       <!-- Orders Panel -->
       <div class="panel" id="panelOrders">
-        <div class="panel-header">
+        <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
           <h3 data-i18n="ordPanel.title">جميع الطلبات</h3>
-          <div class="filter-group">
-            <select id="orderStatusFilter" class="select-input">
+          <div class="filter-group" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <input type="search" id="orderSearchInput" class="filter-input" placeholder="بحث بالاسم، الهاتف أو رقم الطلب..." data-i18n="ordPanel.searchPlaceholder" style="min-width: 220px;">
+            <div class="date-filter-group">
+              <label for="orderDateFrom" style="font-size: 12px; color: var(--color-text-muted);" data-i18n="ordPanel.from">من</label>
+              <input type="date" id="orderDateFrom" class="filter-input" style="padding: 0 8px;">
+              <label for="orderDateTo" style="font-size: 12px; color: var(--color-text-muted);" data-i18n="ordPanel.to">إلى</label>
+              <input type="date" id="orderDateTo" class="filter-input" style="padding: 0 8px;">
+            </div>
+            <select id="orderStatusFilter" class="select-input" style="width: auto; min-width: 140px;">
               <option value="" data-i18n="ordPanel.filter">جميع الحالات</option>
               <option value="pending" data-i18n="status.pending">قيد الانتظار</option>
               <option value="confirmed" data-i18n="status.confirmed">مؤكد</option>
@@ -452,6 +459,8 @@
               <option value="delivered" data-i18n="status.delivered">تم التوصيل</option>
               <option value="cancelled" data-i18n="status.cancelled">ملغى</option>
             </select>
+            <button type="button" id="orderChipPending" class="filter-chip" data-i18n="ordPanel.chipPending">⏳ بحاجة لتأكيد</button>
+            <button type="button" id="orderClearFilters" class="btn btn-outline btn-sm" data-i18n="ordPanel.clearFilters">مسح الفلاتر</button>
           </div>
         </div>
         <div class="card">
@@ -472,6 +481,10 @@
               </thead>
               <tbody id="ordersBody"></tbody>
             </table>
+          </div>
+          <div class="orders-pagination" id="ordersPaginationWrap">
+            <div id="ordersCountInfo" style="font-size:13px; color:var(--color-text-muted);"></div>
+            <button type="button" id="orderLoadMoreBtn" class="btn btn-outline btn-sm" style="display:none;" data-i18n="ordPanel.loadMore">تحميل المزيد</button>
           </div>
         </div>
       </div>

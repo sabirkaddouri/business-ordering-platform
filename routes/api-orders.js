@@ -53,6 +53,14 @@ const whatsappLogSchema = z.object({
   templateType: z.string().max(50),
   messagePreview: z.string().max(200).optional()
 }).strict();
+const listOrdersQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  from: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid from date format (YYYY-MM-DD)').optional(),
+  to: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid to date format (YYYY-MM-DD)').optional(),
+  status: z.enum(['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', '']).optional(),
+  page: z.coerce.number().int().positive().optional().default(1),
+  limit: z.coerce.number().int().positive().max(100).optional().default(50)
+}).strict();
 function createOrderRoutes(db) {
   const router = express.Router();
   const otpStore = new Map();
@@ -240,22 +248,47 @@ function createOrderRoutes(db) {
   });
 
   // GET /api/orders — list all orders (admin only)
-  router.get('/', authenticateToken, async (req, res) => {
+  router.get('/', authenticateToken, validate({ query: listOrdersQuerySchema }), async (req, res) => {
     try {
-      const { status, page = 1, limit = 50 } = req.query;
-      let sql = 'SELECT *, whatsapplog AS "whatsappLog" FROM orders';
+      const { q, from, to, status, page, limit } = req.query;
+      const conditions = [];
       const params = [];
 
-      if (status) {
-        sql += ' WHERE status = ?';
+      if (status && status.length > 0) {
+        conditions.push('status = ?');
         params.push(status);
       }
 
-      sql += ' ORDER BY created_at DESC';
-      sql += ` LIMIT ? OFFSET ?`;
-      params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
+      if (q && q.trim().length > 0) {
+        const cleanQ = q.trim();
+        const escapedQ = cleanQ.replace(/[%_\\]/g, '\\$&');
+        conditions.push(`(customer_name ILIKE ? ESCAPE '\\' OR customer_phone ILIKE ? ESCAPE '\\' OR CAST(id AS TEXT) ILIKE ? ESCAPE '\\')`);
+        const searchPattern = `%${escapedQ}%`;
+        params.push(searchPattern, searchPattern, searchPattern);
+      }
 
-      const orders = await db.all(sql, params);
+      if (from) {
+        conditions.push('created_at >= ?');
+        params.push(`${from} 00:00:00`);
+      }
+
+      if (to) {
+        conditions.push('created_at <= ?');
+        params.push(`${to} 23:59:59.999`);
+      }
+
+      const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
+
+      // Count totals with the same filters
+      const countSql = `SELECT COUNT(*) as total FROM orders${whereClause}`;
+      const countResult = await db.get(countSql, params);
+      const total = parseInt(countResult.total, 10);
+
+      // Fetch paginated orders
+      const offset = (page - 1) * limit;
+      const sql = `SELECT *, whatsapplog AS "whatsappLog" FROM orders${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+      const queryParams = [...params, limit, offset];
+      const orders = await db.all(sql, queryParams);
 
       // Attach items to each order
       const ordersWithItems = [];
@@ -267,20 +300,12 @@ function createOrderRoutes(db) {
         });
       }
 
-      // Count totals
-      let countSql = 'SELECT COUNT(*) as total FROM orders';
-      const countParams = [];
-      if (status) {
-        countSql += ' WHERE status = ?';
-        countParams.push(status);
-      }
-      const countResult = await db.get(countSql, countParams);
-
       res.json({
         orders: ordersWithItems,
-        total: parseInt(countResult.total),
-        page: parseInt(page),
-        pages: Math.ceil(parseInt(countResult.total) / parseInt(limit))
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
       });
     } catch (err) {
       console.error(err);
