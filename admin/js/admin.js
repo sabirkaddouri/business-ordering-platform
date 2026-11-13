@@ -295,6 +295,7 @@ async function loadDashboardData() {
     loadRecentOrders()
   ]);
   loadShopSettings();
+  startOrderAgeTimer();
   startNotificationPolling();
 }
 
@@ -447,6 +448,106 @@ function renderProductsTable() {
   }).join('');
 }
 
+
+function formatMoroccanWaNumber(phone) {
+  if (!phone) return '';
+  let digits = String(phone).replace(/\D/g, '');
+  if (digits.startsWith('00212')) {
+    digits = digits.slice(2);
+  }
+  if (digits.startsWith('0')) {
+    digits = '212' + digits.slice(1);
+  } else if (!digits.startsWith('212')) {
+    digits = '212' + digits;
+  }
+  return digits;
+}
+
+function parseOrderDate(dateStr) {
+  if (!dateStr) return null;
+  if (dateStr instanceof Date) return dateStr;
+  let s = String(dateStr).trim();
+  if (!s.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(s)) {
+    s = s.replace(' ', 'T') + 'Z';
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? new Date(dateStr) : d;
+}
+
+function getOrderAgeInfo(dateStr, status) {
+  const d = parseOrderDate(dateStr);
+  if (!d) return { label: '-', colorClass: '' };
+
+  const diffMs = Math.max(0, Date.now() - d.getTime());
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  const units = i18nAdminStore[currentLang]?.ordPanel || {};
+  const unitMin = units.ageMin || 'min';
+  const unitHour = units.ageHour || 'h';
+  const unitDay = units.ageDay || 'd';
+
+  let label = '';
+  if (diffMin < 60) {
+    label = `${diffMin} ${unitMin}`;
+  } else if (diffHours < 24) {
+    label = `${diffHours} ${unitHour}`;
+  } else {
+    label = `${diffDays} ${unitDay}`;
+  }
+
+  let colorClass = '';
+  if (status === 'pending') {
+    if (diffMin >= 60) {
+      colorClass = 'age-red';
+    } else if (diffMin >= 30) {
+      colorClass = 'age-amber';
+    }
+  }
+
+  return { label, colorClass };
+}
+
+function refreshOrderAgeBadges() {
+  document.querySelectorAll('.order-age-badge[data-created-at]').forEach(el => {
+    const createdAt = el.dataset.createdAt;
+    const status = el.dataset.status;
+    const { label, colorClass } = getOrderAgeInfo(createdAt, status);
+    el.textContent = label;
+    el.className = `order-age-badge ${colorClass}`.trim();
+  });
+}
+
+let orderAgeTimer = null;
+function startOrderAgeTimer() {
+  if (orderAgeTimer) clearInterval(orderAgeTimer);
+  orderAgeTimer = setInterval(refreshOrderAgeBadges, 30000);
+}
+
+async function triggerOrderWhatsApp(orderId) {
+  try {
+    if (window.whatsappAdminConfig && window.whatsappAdminConfig.whatsappEnabled && typeof window.openWhatsappModal === 'function') {
+      window.openWhatsappModal(orderId, 'confirmation');
+      return;
+    }
+
+    const res = await fetch(`${API}/api/orders/${orderId}`, { headers: authHeaders() });
+    if (!res.ok) return;
+    const order = await res.json();
+
+    const template = window.whatsappAdminConfig?.whatsappTemplateConfirmation ||
+      "Bonjour {clientName} 👋\nMerci pour votre commande chez Shop ! 🛍️\nVotre commande numéro #{orderId} a bien été reçue.\n📦 Produits commandés:\n{orderItems}\n💰 Total: {orderTotal} MAD\n📍 Adresse de livraison: {clientAddress}, {clientCity}\nNous vous contacterons bientôt pour confirmer la livraison. Merci de votre confiance ! ✨";
+
+    const message = buildWhatsAppMessage(template, order);
+    const phone = formatMoroccanWaNumber(order.customer_phone);
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  } catch (err) {
+    console.error('Failed to trigger WhatsApp:', err);
+  }
+}
+
 let currentOrdersPage = 1;
 const ordersLimit = 50;
 let totalOrdersCount = 0;
@@ -490,6 +591,52 @@ async function loadOrders(append = false) {
   }
 }
 
+async function loadRecentOrders() {
+  try {
+    const res = await fetch(`${API}/api/orders?limit=5`, { headers: authHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    renderRecentOrders(data.orders);
+  } catch (err) {
+    console.error('Failed to load recent orders:', err);
+  }
+}
+
+function renderRecentOrders(orders) {
+  const tbody = document.getElementById('recentOrdersBody');
+  if (!orders || orders.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-light);">${i18nAdminStore[currentLang].ordPanel.empty}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = orders.map(o => {
+    const ageInfo = getOrderAgeInfo(o.created_at, o.status);
+    return `
+    <tr class="order-row" data-order-id="${o.id}" tabindex="0">
+      <td>#${o.id}</td>
+      <td>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+          <span>${escapeHtml(o.customer_name)}</span>
+          <span style="display:inline-flex; align-items:center; gap:4px;">
+            ${o.customer_phone ? `<a href="tel:${escapeHtml(o.customer_phone)}" class="btn-icon btn-sm" title="Call">📞</a>` : ''}
+            <button type="button" class="btn-icon btn-sm order-wa-btn" data-order-id="${o.id}" title="WhatsApp">💬</button>
+          </span>
+        </div>
+      </td>
+      <td>${o.items ? o.items.length : 0} ${i18nAdminStore[currentLang].js.items}</td>
+      <td>${o.total.toFixed(2)} MAD</td>
+      <td><span class="status-badge status-${o.status}">${o.status}</span></td>
+      <td>
+        <div>${formatDate(o.created_at)}</div>
+        <div style="margin-top:2px;">
+          <span class="order-age-badge ${ageInfo.colorClass}" data-created-at="${o.created_at}" data-status="${o.status}">${ageInfo.label}</span>
+        </div>
+      </td>
+    </tr>
+  `;
+  }).join('');
+}
+
 function renderOrdersTable(orders, append = false) {
   const tbody = document.getElementById('ordersBody');
   const hasFilters = Boolean(
@@ -515,7 +662,9 @@ function renderOrdersTable(orders, append = false) {
   const newOrders = (orders || []).filter(o => !loadedOrderIds.has(o.id));
   newOrders.forEach(o => loadedOrderIds.add(o.id));
 
-  const rowsHtml = newOrders.map(o => `
+  const rowsHtml = newOrders.map(o => {
+    const ageInfo = getOrderAgeInfo(o.created_at, o.status);
+    return `
     <tr class="order-row" data-order-id="${o.id}" tabindex="0">
       <td>#${o.id}</td>
       <td>${escapeHtml(o.customer_name)}</td>
@@ -533,12 +682,22 @@ function renderOrdersTable(orders, append = false) {
           <option value="cancelled" ${o.status === 'cancelled' ? 'selected' : ''}>${i18nAdminStore[currentLang].status.cancelled}</option>
         </select>
       </td>
-      <td>${formatDate(o.created_at)}</td>
       <td>
-        <button class="btn-icon danger" onclick="deleteOrder(${o.id})" title="Delete">🗑️</button>
+        <div>${formatDate(o.created_at)}</div>
+        <div style="margin-top:2px;">
+          <span class="order-age-badge ${ageInfo.colorClass}" data-created-at="${o.created_at}" data-status="${o.status}">${ageInfo.label}</span>
+        </div>
+      </td>
+      <td>
+        <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
+          ${o.customer_phone ? `<a href="tel:${escapeHtml(o.customer_phone)}" class="btn-icon btn-sm" title="Call">📞</a>` : ''}
+          <button type="button" class="btn-icon btn-sm order-wa-btn" data-order-id="${o.id}" title="WhatsApp">💬</button>
+          <button type="button" class="btn-icon btn-sm danger" onclick="deleteOrder(${o.id})" title="Delete">🗑️</button>
+        </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   if (!append) {
     tbody.innerHTML = rowsHtml;
@@ -546,6 +705,7 @@ function renderOrdersTable(orders, append = false) {
     tbody.insertAdjacentHTML('beforeend', rowsHtml);
   }
 }
+
 
 function updateOrdersPagination(batchCount, total, append = false) {
   const countEl = document.getElementById('ordersCountInfo');
@@ -1056,6 +1216,17 @@ function setupEventListeners() {
     recentOrdersBody.addEventListener('click', handleOrderRowClick);
     recentOrdersBody.addEventListener('keydown', handleOrderRowKeydown);
   }
+
+  
+  // Delegated click handler for WhatsApp quick button
+  document.addEventListener('click', (e) => {
+    const waBtn = e.target.closest('.order-wa-btn');
+    if (waBtn) {
+      e.stopPropagation();
+      const orderId = parseInt(waBtn.dataset.orderId, 10);
+      if (orderId) triggerOrderWhatsApp(orderId);
+    }
+  });
 
   // Order filters & search
   const orderSearchInput = document.getElementById('orderSearchInput');

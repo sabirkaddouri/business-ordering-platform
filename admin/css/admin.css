@@ -1274,8 +1274,8 @@ tr.order-row:focus-visible td {
 /* === ORDERS TABLE ACTIONS COLUMN === */
 #ordersTable th:last-child,
 #ordersTable td:last-child {
-  width: 90px;
-  min-width: 90px;
+  width: 130px;
+  min-width: 130px;
   text-align: center;
   padding: 13px 12px;
 }
@@ -1354,4 +1354,35 @@ html[dir="ltr"] #ordersTable td:last-child {
   border-top: 1px solid var(--color-border);
   flex-wrap: wrap;
   gap: 12px;
+}
+
+/* === ORDER AGE & QUICK ACTIONS === */
+.order-age-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: rgba(158, 126, 110, 0.12);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.order-age-badge.age-amber {
+  background: rgba(212, 160, 23, 0.18);
+  color: #B8890F;
+  border: 1px solid rgba(212, 160, 23, 0.4);
+}
+
+.order-age-badge.age-red {
+  background: rgba(176, 58, 46, 0.18);
+  color: #C0392B;
+  border: 1px solid rgba(176, 58, 46, 0.4);
+}
+
+.btn-icon.btn-sm {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
 }

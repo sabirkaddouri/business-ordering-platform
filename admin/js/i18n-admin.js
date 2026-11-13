@@ -6,7 +6,7 @@ const i18nAdmin = {
     stats: { orders: "Total Orders", pending: "Pending", rev: "Revenue", products: "Products" },
     recent: { title: "Recent Orders", id: "ID", cust: "Customer", items: "Items", total: "Total", status: "Status", date: "Date" },
     prodPanel: { title: "Products", add: "+ Add Product", img: "Image", name: "Name", cat: "Category", price: "Price", feat: "Featured", avail: "Available", act: "Actions", empty: "No products yet. Add your first product!" },
-    ordPanel: { title: "All Orders", filter: "All Statuses", phone: "Phone", address: "Address", empty: "No orders found.", searchPlaceholder: "Search by name, phone or order #...", from: "From", to: "To", chipPending: "⏳ Needs confirmation", clearFilters: "Clear filters", showingOrders: "Showing {shown} of {total} orders", loadMore: "Load more", noMatch: "No orders match your search or filters." },
+    ordPanel: { title: "All Orders", filter: "All Statuses", phone: "Phone", address: "Address", empty: "No orders found.", ageMin: "min", ageHour: "h", ageDay: "d", searchPlaceholder: "Search by name, phone or order #...", from: "From", to: "To", chipPending: "⏳ Needs confirmation", clearFilters: "Clear filters", showingOrders: "Showing {shown} of {total} orders", loadMore: "Load more", noMatch: "No orders match your search or filters." },
     settings: {
       title: "Account Settings", curUser: "Current Username", newUser: "New Username", curPass: "Current Password", newPass: "New Password (min. 12 characters, leave blank to keep current)", confPass: "Confirm New Password", btn: "Save Account Settings",
       shopTitle: "Shop Settings",
@@ -61,7 +61,7 @@ const i18nAdmin = {
     stats: { orders: "Commandes Totales", pending: "En attente", rev: "Revenus", products: "Produits" },
     recent: { title: "Commandes Récentes", id: "ID", cust: "Client", items: "Articles", total: "Total", status: "Statut", date: "Date" },
     prodPanel: { title: "Produits", add: "+ Ajouter", img: "Image", name: "Nom", cat: "Catégorie", price: "Prix", feat: "En vedette", avail: "Disponible", act: "Actions", empty: "Aucun produit. Ajoutez votre premier produit !" },
-    ordPanel: { title: "Toutes les Commandes", filter: "Tous les statuts", phone: "Téléphone", address: "Adresse", empty: "Aucune commande trouvée.", searchPlaceholder: "Rechercher par nom, tél ou n° de commande...", from: "Du", to: "Au", chipPending: "⏳ À confirmer", clearFilters: "Effacer les filtres", showingOrders: "Affichage de {shown} sur {total} commandes", loadMore: "Charger plus", noMatch: "Aucune commande ne correspond à vos filtres." },
+    ordPanel: { title: "Toutes les Commandes", filter: "Tous les statuts", phone: "Téléphone", address: "Adresse", empty: "Aucune commande trouvée.", ageMin: "min", ageHour: "h", ageDay: "j", searchPlaceholder: "Rechercher par nom, tél ou n° de commande...", from: "Du", to: "Au", chipPending: "⏳ À confirmer", clearFilters: "Effacer les filtres", showingOrders: "Affichage de {shown} sur {total} commandes", loadMore: "Charger plus", noMatch: "Aucune commande ne correspond à vos filtres." },
     settings: {
       title: "Paramètres du Compte", curUser: "Nom d'utilisateur actuel", newUser: "Nouveau nom d'utilisateur", curPass: "Mot de passe actuel", newPass: "Nouveau mot de passe (min. 12 caractères, laisser vide pour conserver)", confPass: "Confirmer le nouveau mot de passe", btn: "Enregistrer les paramètres du compte",
       shopTitle: "Paramètres de la boutique",
@@ -116,7 +116,7 @@ const i18nAdmin = {
     stats: { orders: "إجمالي الطلبات", pending: "قيد الانتظار", rev: "الإيرادات", products: "المنتجات" },
     recent: { title: "أحدث الطلبات", id: "الرقم", cust: "العميل", items: "العناصر", total: "المجموع", status: "الحالة", date: "التاريخ" },
     prodPanel: { title: "المنتجات", add: "+ إضافة منتج", img: "الصورة", name: "الاسم", cat: "الفئة", price: "السعر", feat: "مميز", avail: "متاح", act: "الإجراءات", empty: "لا توجد منتجات بعد. أضف منتجك الأول!" },
-    ordPanel: { title: "جميع الطلبات", filter: "جميع الحالات", phone: "الهاتف", address: "العنوان", empty: "لا توجد طلبات.", searchPlaceholder: "بحث بالاسم، الهاتف أو رقم الطلب...", from: "من", to: "إلى", chipPending: "⏳ بحاجة لتأكيد", clearFilters: "مسح الفلاتر", showingOrders: "عرض {shown} من {total} طلب", loadMore: "تحميل المزيد", noMatch: "لا توجد طلبات تطابق بحثك أو فلاترك." },
+    ordPanel: { title: "جميع الطلبات", filter: "جميع الحالات", phone: "الهاتف", address: "العنوان", empty: "لا توجد طلبات.", ageMin: "د", ageHour: "س", ageDay: "ي", searchPlaceholder: "بحث بالاسم، الهاتف أو رقم الطلب...", from: "من", to: "إلى", chipPending: "⏳ بحاجة لتأكيد", clearFilters: "مسح الفلاتر", showingOrders: "عرض {shown} من {total} طلب", loadMore: "تحميل المزيد", noMatch: "لا توجد طلبات تطابق بحثك أو فلاترك." },
     settings: {
       title: "إعدادات الحساب", curUser: "اسم المستخدم الحالي", newUser: "اسم المستخدم الجديد", curPass: "كلمة المرور الحالية *", newPass: "كلمة المرور الجديدة (12 حرفًا على الأقل، اتركها فارغة للاحتفاظ بالقديمة)", confPass: "تأكيد كلمة المرور الجديدة", btn: "حفظ إعدادات الحساب",
       shopTitle: "إعدادات المتجر",
