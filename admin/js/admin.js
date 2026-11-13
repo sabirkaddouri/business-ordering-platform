@@ -51,7 +51,8 @@ function setLanguage(lang) {
   populateCategorySelect();
   if (allProducts.length) renderProductsTable();
   if (getLockoutEndTime()) updateLockoutUI();
-    if (typeof renderPromoProductCheckboxes === "function") renderPromoProductCheckboxes(); // Init promo products
+  updateSoundToggleButton();
+  if (typeof renderPromoProductCheckboxes === "function") renderPromoProductCheckboxes(); // Init promo products
   if (document.getElementById('dashboard').style.display !== 'none') {
     loadOrders();
     loadRecentOrders();
@@ -62,6 +63,12 @@ document.addEventListener('DOMContentLoaded', () => {
   setLanguage(currentLang);
   document.getElementById('langSwitcherLogin')?.addEventListener('change', (e) => setLanguage(e.target.value));
   document.getElementById('langSwitcherDash')?.addEventListener('change', (e) => setLanguage(e.target.value));
+
+  const soundBtn = document.getElementById('soundToggleBtn');
+  if (soundBtn) {
+    soundBtn.addEventListener('click', toggleSoundAlerts);
+    updateSoundToggleButton();
+  }
 
   if (token) {
     showDashboard();
@@ -237,6 +244,12 @@ function logout() {
   token = null;
   localStorage.removeItem('sd_admin_token');
   localStorage.removeItem('sd_admin_user');
+  if (notifPollInterval) {
+    clearInterval(notifPollInterval);
+    notifPollInterval = null;
+  }
+  highestNotifIdSeen = null;
+  updateAdminTabTitle(0);
   showLogin();
 }
 
@@ -1674,9 +1687,137 @@ function getCheckedPromoProductIds() {
 
 
 // =============================================
-// NOTIFICATIONS
+// NOTIFICATIONS & NEW-ORDER ALERTS
 // =============================================
 let notifPollInterval = null;
+let highestNotifIdSeen = null;
+let baseAdminDocumentTitle = '';
+let audioCtxInstance = null;
+
+function getAudioContext() {
+  if (!audioCtxInstance) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      audioCtxInstance = new AudioContextClass();
+    }
+  }
+  return audioCtxInstance;
+}
+
+function unlockAudioContext() {
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+}
+
+document.addEventListener('click', unlockAudioContext, { once: false, passive: true });
+document.addEventListener('keydown', unlockAudioContext, { once: false, passive: true });
+document.addEventListener('touchstart', unlockAudioContext, { once: false, passive: true });
+
+function isSoundMuted() {
+  try {
+    return localStorage.getItem('osouly_admin_sound_muted') === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+function setSoundMuted(muted) {
+  try {
+    localStorage.setItem('osouly_admin_sound_muted', muted ? 'true' : 'false');
+  } catch (e) {}
+  updateSoundToggleButton();
+}
+
+function updateSoundToggleButton() {
+  const btn = document.getElementById('soundToggleBtn');
+  if (!btn) return;
+  const muted = isSoundMuted();
+  const lang = (typeof currentLang !== 'undefined' && currentLang) ? currentLang : 'fr';
+  const dict = (typeof i18nAdminStore !== 'undefined' && i18nAdminStore[lang]?.topbar) || {};
+  if (muted) {
+    btn.textContent = '🔕';
+    btn.classList.add('muted');
+    const tip = dict.soundMuted || 'Alert sounds: Muted (click to unmute)';
+    btn.title = tip;
+    btn.setAttribute('aria-label', tip);
+  } else {
+    btn.textContent = '🔔';
+    btn.classList.remove('muted');
+    const tip = dict.soundOn || 'Alert sounds: On (click to mute)';
+    btn.title = tip;
+    btn.setAttribute('aria-label', tip);
+  }
+}
+
+function toggleSoundAlerts() {
+  unlockAudioContext();
+  setSoundMuted(!isSoundMuted());
+}
+
+function playOrderAlertSound() {
+  if (isSoundMuted()) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    // Two-tone pleasant chime: 880Hz then 1175Hz
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.setValueAtTime(1175, now + 0.09);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.28, now + 0.02);
+    gain.gain.setValueAtTime(0.28, now + 0.16);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.22);
+  } catch (e) {
+    // Autoplay or audio context blocked
+  }
+}
+
+function updateAdminTabTitle(unreadCount) {
+  if (!baseAdminDocumentTitle) {
+    const raw = document.title || 'Admin - O Souly Shop';
+    baseAdminDocumentTitle = raw.replace(/^\(\d+\)\s*/, '');
+  }
+  const clean = baseAdminDocumentTitle.replace(/^\(\d+\)\s*/, '');
+  const count = Number(unreadCount) || 0;
+  if (count > 0) {
+    document.title = `(${count}) ${clean}`;
+  } else {
+    document.title = clean;
+  }
+}
+
+async function refreshCurrentOrdersView() {
+  const isOrdersActive = document.getElementById('panelOrders')?.classList.contains('active');
+  const isOverviewActive = document.getElementById('panelOverview')?.classList.contains('active');
+
+  if (isOverviewActive) {
+    await loadRecentOrders();
+    if (typeof loadStats === 'function') await loadStats();
+  }
+  if (isOrdersActive) {
+    const targetPages = Math.max(1, currentOrdersPage || 1);
+    await loadOrders(false);
+    for (let p = 2; p <= targetPages; p++) {
+      await loadOrders(true);
+    }
+  }
+}
 
 async function fetchNotifications() {
   if (!token) return;
@@ -1684,7 +1825,33 @@ async function fetchNotifications() {
     const res = await fetch(`${API}/api/notifications`, { headers: authHeaders() });
     if (!res.ok) return;
     const data = await res.json();
-    renderNotifications(data.notifications, data.unreadCount);
+    const notifs = data.notifications || [];
+    const unreadCount = Number(data.unreadCount) || 0;
+
+    if (highestNotifIdSeen === null) {
+      // First load of the page: initialize without alerting
+      highestNotifIdSeen = notifs.length > 0 ? Math.max(...notifs.map(n => Number(n.id) || 0)) : 0;
+    } else {
+      const newlyArrived = notifs.filter(n => (Number(n.id) || 0) > highestNotifIdSeen);
+      if (newlyArrived.length > 0) {
+        highestNotifIdSeen = Math.max(highestNotifIdSeen, ...newlyArrived.map(n => Number(n.id) || 0));
+
+        // For each newly arrived notification
+        for (const n of newlyArrived) {
+          playOrderAlertSound();
+          showAdminToast(n.message || `New order #${n.orderId}`, 'success');
+          if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+            try { navigator.vibrate([200, 100, 200]); } catch (e) {}
+          }
+        }
+
+        // Refresh orders panel or dashboard in place
+        refreshCurrentOrdersView().catch(err => console.error('Failed to refresh orders in place:', err));
+      }
+    }
+
+    renderNotifications(notifs, unreadCount);
+    updateAdminTabTitle(unreadCount);
   } catch (err) { /* silent */ }
 }
 
@@ -1744,8 +1911,22 @@ async function openOrderFromNotif(notifId, orderId) {
 function startNotificationPolling() {
   fetchNotifications();
   if (notifPollInterval) clearInterval(notifPollInterval);
-  notifPollInterval = setInterval(fetchNotifications, 30000);
+  notifPollInterval = setInterval(fetchNotifications, 15000);
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    if (notifPollInterval) {
+      clearInterval(notifPollInterval);
+      notifPollInterval = null;
+    }
+  } else if (document.visibilityState === 'visible') {
+    fetchNotifications();
+    if (!notifPollInterval && token) {
+      notifPollInterval = setInterval(fetchNotifications, 15000);
+    }
+  }
+});
 
 document.addEventListener('click', (e) => {
   const dd = document.getElementById('notifDropdown');
@@ -1758,6 +1939,7 @@ document.addEventListener('click', (e) => {
 window.toggleNotifDropdown = toggleNotifDropdown;
 window.markAllNotifsRead = markAllNotifsRead;
 window.openOrderFromNotif = openOrderFromNotif;
+window.toggleSoundAlerts = toggleSoundAlerts;
 
 // =============================================
 // CITY DELIVERY DASHBOARD

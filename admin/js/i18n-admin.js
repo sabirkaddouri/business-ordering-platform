@@ -2,7 +2,7 @@ const i18nAdmin = {
   en: {
     login: { title: "Admin Dashboard", user: "Username", pass: "Password", btn: "Sign In", err: "Login failed", lockout: "Too many failed attempts. Try again in {time}" },
     sidebar: { overview: "Overview", analytics: "Analytics", products: "Products", promotions: "Promotions", orders: "Orders", settings: "Settings", logout: "Logout" },
-    topbar: { title: "Overview", admin: "Admin" },
+    topbar: { title: "Overview", admin: "Admin", soundOn: "Sound alerts: On (click to mute)", soundMuted: "Sound alerts: Muted (click to unmute)" },
     stats: { orders: "Total Orders", pending: "Pending", rev: "Revenue", products: "Products" },
     recent: { title: "Recent Orders", id: "ID", cust: "Customer", items: "Items", total: "Total", status: "Status", date: "Date" },
     prodPanel: { title: "Products", add: "+ Add Product", img: "Image", name: "Name", cat: "Category", price: "Price", feat: "Featured", avail: "Available", act: "Actions", empty: "No products yet. Add your first product!" },
@@ -57,7 +57,7 @@ const i18nAdmin = {
   fr: {
     login: { title: "Tableau de Bord", user: "Nom d'utilisateur", pass: "Mot de passe", btn: "Se connecter", err: "Échec de connexion", lockout: "Trop de tentatives échouées. Réessayez dans {time}" },
     sidebar: { overview: "Aperçu", analytics: "Analytiques", products: "Produits", promotions: "Promotions", orders: "Commandes", settings: "Paramètres", logout: "Déconnexion" },
-    topbar: { title: "Aperçu", admin: "Admin" },
+    topbar: { title: "Aperçu", admin: "Admin", soundOn: "Alertes sonores : Activées (cliquer pour couper)", soundMuted: "Alertes sonores : Coupées (cliquer pour activer)" },
     stats: { orders: "Commandes Totales", pending: "En attente", rev: "Revenus", products: "Produits" },
     recent: { title: "Commandes Récentes", id: "ID", cust: "Client", items: "Articles", total: "Total", status: "Statut", date: "Date" },
     prodPanel: { title: "Produits", add: "+ Ajouter", img: "Image", name: "Nom", cat: "Catégorie", price: "Prix", feat: "En vedette", avail: "Disponible", act: "Actions", empty: "Aucun produit. Ajoutez votre premier produit !" },
@@ -112,7 +112,7 @@ const i18nAdmin = {
   ar: {
     login: { title: "لوحة تحكم الإدارة", user: "اسم المستخدم", pass: "كلمة المرور", btn: "تسجيل الدخول", err: "فشل تسجيل الدخول", lockout: "محاولات فاشلة كثيرة جدًا. يرجى المحاولة بعد \u200E{time}\u200E" },
     sidebar: { overview: "نظرة عامة", analytics: "التحليلات", products: "المنتجات", promotions: "العروض", orders: "الطلبات", settings: "الإعدادات", logout: "تسجيل الخروج" },
-    topbar: { title: "نظرة عامة", admin: "المدير" },
+    topbar: { title: "نظرة عامة", admin: "المدير", soundOn: "التنبيهات الصوتية: مفعّلة (انقر للكتم)", soundMuted: "التنبيهات الصوتية: مكتومة (انقر للتفعيل)" },
     stats: { orders: "إجمالي الطلبات", pending: "قيد الانتظار", rev: "الإيرادات", products: "المنتجات" },
     recent: { title: "أحدث الطلبات", id: "الرقم", cust: "العميل", items: "العناصر", total: "المجموع", status: "الحالة", date: "التاريخ" },
     prodPanel: { title: "المنتجات", add: "+ إضافة منتج", img: "الصورة", name: "الاسم", cat: "الفئة", price: "السعر", feat: "مميز", avail: "متاح", act: "الإجراءات", empty: "لا توجد منتجات بعد. أضف منتجك الأول!" },

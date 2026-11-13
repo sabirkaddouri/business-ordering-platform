@@ -1386,3 +1386,29 @@ html[dir="ltr"] #ordersTable td:last-child {
   height: 28px;
   font-size: 12px;
 }
+
+.sound-toggle-btn {
+  background: none;
+  border: 1px solid var(--dark-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text-dark, #fff);
+  margin-inline-end: 10px;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.sound-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary, #C4622D);
+}
+
+.sound-toggle-btn.muted {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
