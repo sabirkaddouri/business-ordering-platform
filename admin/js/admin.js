@@ -2614,3 +2614,14 @@ window.sendWhatsappMessage = function() {
     }
   })();
 };
+
+// Register service worker for PWA support (installable admin web app)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+      .catch((err) => {
+        console.warn('Admin Service Worker registration failed:', err);
+      });
+  });
+}
+
