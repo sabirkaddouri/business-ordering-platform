@@ -319,6 +319,14 @@ async function loadShopSettings() {
     const settings = await res.json();
 
     document.getElementById('settingSiteName').value = settings.siteName || "";
+
+    // Update page/tab title from shop name
+    if (settings.siteName) {
+      const adminTitle = `${settings.siteName} - Admin`;
+      document.title = adminTitle;
+      baseAdminDocumentTitle = adminTitle;
+    }
+
     document.getElementById('settingDescription').value = settings.description || "";
     document.getElementById('settingAddress').value = settings.address || "";
     document.getElementById('settingGoogleMapsLink').value = settings.googleMapsLink || "";
@@ -1717,7 +1725,15 @@ document.addEventListener('touchstart', unlockAudioContext, { once: false, passi
 
 function isSoundMuted() {
   try {
-    return localStorage.getItem('osouly_admin_sound_muted') === 'true';
+    // Migrate old key once
+    const OLD_KEY = 'osouly_admin_sound_muted';
+    const NEW_KEY = 'sd_admin_sound_muted';
+    const oldVal = localStorage.getItem(OLD_KEY);
+    if (oldVal !== null) {
+      localStorage.setItem(NEW_KEY, oldVal);
+      localStorage.removeItem(OLD_KEY);
+    }
+    return localStorage.getItem(NEW_KEY) === 'true';
   } catch (e) {
     return false;
   }
@@ -1725,7 +1741,7 @@ function isSoundMuted() {
 
 function setSoundMuted(muted) {
   try {
-    localStorage.setItem('osouly_admin_sound_muted', muted ? 'true' : 'false');
+    localStorage.setItem('sd_admin_sound_muted', muted ? 'true' : 'false');
   } catch (e) {}
   updateSoundToggleButton();
 }
@@ -1790,7 +1806,7 @@ function playOrderAlertSound() {
 
 function updateAdminTabTitle(unreadCount) {
   if (!baseAdminDocumentTitle) {
-    const raw = document.title || 'Admin - O Souly Shop';
+    const raw = document.title || 'Admin Dashboard';
     baseAdminDocumentTitle = raw.replace(/^\(\d+\)\s*/, '');
   }
   const clean = baseAdminDocumentTitle.replace(/^\(\d+\)\s*/, '');
