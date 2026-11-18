@@ -435,8 +435,8 @@ function renderProductsTable() {
   tbody.innerHTML = allProducts.map(p => {
     const imgUrl = p.image && p.image.startsWith('http') ? p.image : `/images/${p.image}`;
     const img = p.image && p.image !== 'default.jpg'
-      ? `<div class="table-image"><img src="${imgUrl}" alt="${p.name}"></div>`
-      : `<div class="table-image">${p.category_icon || '🍰'}</div>`;
+      ? `<div class="table-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(p.name)}"></div>`
+      : `<div class="table-image">${escapeHtml(p.category_icon || '🍰')}</div>`;
 
     let stockCell;
     if (!p.trackStock) {
@@ -1625,13 +1625,13 @@ function renderPromotionsTable(promos) {
 
     return `
       <tr>
-        <td><strong>${p.code}</strong></td>
+        <td><strong>${escapeHtml(p.code)}</strong></td>
         <td>${p.type === 'percentage' ? 'Pourcentage' : 'Fixe'}</td>
         <td>${typeLabel}</td>
         <td>${minLabel}</td>
         <td>${expiryLabel}</td>
         <td>${statusLabel}</td>
-        <td style="font-size:12px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${porteeLabel}">${porteeLabel}</td>
+        <td style="font-size:12px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(porteeLabel)}">${escapeHtml(porteeLabel)}</td>
         <td>${p.usageCount}</td>
         <td>
           <button class="btn-icon danger" onclick="deletePromo(${p.id})" title="Supprimer">🗑️</button>
