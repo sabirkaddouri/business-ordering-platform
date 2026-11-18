@@ -160,7 +160,7 @@ body {
   margin-bottom: 6px;
 }
 
-.form-group input,
+.form-group input:not([type="checkbox"]):not([type="radio"]),
 .form-group textarea,
 .select-input {
   width: 100%;
@@ -177,12 +177,12 @@ body {
   appearance: none;
 }
 
-.form-group input::placeholder,
+.form-group input:not([type="checkbox"]):not([type="radio"])::placeholder,
 .form-group textarea::placeholder {
   color: var(--color-text-muted);
 }
 
-.form-group input:focus,
+.form-group input:not([type="checkbox"]):not([type="radio"]):focus,
 .form-group textarea:focus,
 .select-input:focus {
   border-color: var(--color-primary);
@@ -208,21 +208,176 @@ body {
   padding-right: 40px;
 }
 
+/* === CHECKBOXES & RADIOS === */
 .checkbox-label {
   display: flex !important;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
   font-family: var(--font-body);
   font-weight: 500 !important;
+  font-size: 14px;
   color: var(--color-text) !important;
+  user-select: none;
+  -webkit-user-select: none;
+  min-height: 44px;
+  padding: 4px 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-primary);
+/* Base custom checkbox styling */
+.checkbox-label input[type="checkbox"],
+#promoProductCheckboxList input[type="checkbox"],
+.form-group input[type="checkbox"]:not(.switch input),
+input[type="checkbox"].admin-checkbox {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  box-sizing: border-box !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: var(--color-white) !important;
+  border: 2px solid var(--color-border-dark) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  display: inline-block;
   flex-shrink: 0;
+  outline: none !important;
+  vertical-align: middle;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 13px 13px;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .checkbox-label:hover input[type="checkbox"]:not(:disabled),
+  .checkbox-label input[type="checkbox"]:hover:not(:disabled),
+  #promoProductCheckboxList input[type="checkbox"]:hover:not(:disabled),
+  .form-group input[type="checkbox"]:not(.switch input):hover:not(:disabled) {
+    border-color: var(--color-primary) !important;
+  }
+}
+
+.checkbox-label input[type="checkbox"]:checked,
+#promoProductCheckboxList input[type="checkbox"]:checked,
+.form-group input[type="checkbox"]:not(.switch input):checked,
+input[type="checkbox"].admin-checkbox:checked {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3.5 8.5 6.5 11.5 12.5 5'/%3E%3C/svg%3E") !important;
+}
+
+.checkbox-label input[type="checkbox"]:focus,
+#promoProductCheckboxList input[type="checkbox"]:focus,
+.form-group input[type="checkbox"]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.checkbox-label input[type="checkbox"]:focus-visible,
+#promoProductCheckboxList input[type="checkbox"]:focus-visible,
+.form-group input[type="checkbox"]:not(.switch input):focus-visible,
+input[type="checkbox"].admin-checkbox:focus-visible {
+  outline: none !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(196, 98, 45, 0.25) !important;
+}
+
+.checkbox-label input[type="checkbox"]:disabled,
+#promoProductCheckboxList input[type="checkbox"]:disabled,
+.form-group input[type="checkbox"]:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  border-color: var(--color-border-dark) !important;
+}
+
+#promoProductCheckboxList label {
+  min-height: 38px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom radio styling */
+.form-group input[type="radio"],
+input[type="radio"].admin-radio {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  box-sizing: border-box !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: var(--color-white) !important;
+  border: 2px solid var(--color-border-dark) !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  display: inline-block;
+  flex-shrink: 0;
+  outline: none !important;
+  vertical-align: middle;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .form-group input[type="radio"]:hover:not(:disabled),
+  input[type="radio"].admin-radio:hover:not(:disabled) {
+    border-color: var(--color-primary) !important;
+  }
+}
+
+.form-group input[type="radio"]:checked,
+input[type="radio"].admin-radio:checked {
+  border-color: var(--color-primary) !important;
+  background-color: var(--color-white) !important;
+  background-image: radial-gradient(circle, var(--color-primary) 50%, transparent 54%) !important;
+}
+
+.form-group input[type="radio"]:focus,
+input[type="radio"].admin-radio:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.form-group input[type="radio"]:focus-visible,
+input[type="radio"].admin-radio:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(196, 98, 45, 0.25) !important;
+}
+
+.form-group input[type="radio"]:disabled,
+input[type="radio"].admin-radio:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Ensure .switch input stays hidden and never inherits text/custom box styles */
+.switch input {
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  position: absolute !important;
+  pointer-events: none !important;
 }
 
 /* === BUTTONS === */
