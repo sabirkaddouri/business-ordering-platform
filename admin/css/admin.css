@@ -1243,32 +1243,64 @@ body {
   }
 }
 
-/* === TAPPABLE / CLICKABLE ORDER ROWS === */
-tr.order-row {
+/* === TAPPABLE / CLICKABLE ROWS (ORDERS, PRODUCTS, CATEGORIES) === */
+tr.order-row,
+tr.clickable-row {
   cursor: pointer;
   -webkit-tap-highlight-color: rgba(196, 98, 45, 0.2);
   transition: background var(--transition-fast);
 }
 
-tr.order-row:hover td {
+tr.order-row:hover td,
+tr.clickable-row:hover td {
   background: var(--color-surface);
 }
 
-tr.order-row:active td {
+tr.order-row:active td,
+tr.clickable-row:active td {
   background: var(--color-primary-light);
 }
 
-tr.order-row:focus {
+tr.order-row:focus,
+tr.clickable-row:focus {
   outline: none;
 }
 
-tr.order-row:focus-visible {
+tr.order-row:focus-visible,
+tr.clickable-row:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }
 
-tr.order-row:focus-visible td {
+tr.order-row:focus-visible td,
+tr.clickable-row:focus-visible td {
   background: var(--color-surface);
+}
+
+/* Maintain custom row background on td when present and not hovered */
+tr.clickable-row[style*="background"]:not(:hover):not(:active) td {
+  background: inherit;
+}
+
+/* === ACTIONS COLUMNS === */
+#productsTable th:last-child,
+#productsTable td:last-child,
+#categoriesTable th:last-child,
+#categoriesTable td:last-child {
+  width: 90px;
+  min-width: 90px;
+  text-align: center;
+}
+
+#productsTable td:last-child .btn-icon,
+#categoriesTable td:last-child .btn-icon {
+  margin: 0 auto;
+}
+
+#categoriesTable td:last-child .action-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* === ORDERS TABLE ACTIONS COLUMN === */

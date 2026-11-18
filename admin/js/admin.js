@@ -452,7 +452,7 @@ function renderProductsTable() {
     const rowStyle = p.trackStock && p.stock > 0 && p.stock < 5 ? 'background:rgba(217,119,6,0.07);' : (p.trackStock && p.stock === 0 ? 'background:rgba(229,62,62,0.07);' : '');
 
     return `
-      <tr style="${rowStyle}">
+      <tr class="clickable-row product-row" data-product-id="${p.id}" tabindex="0" style="${rowStyle}">
         <td>${img}</td>
         <td><strong>${escapeHtml(p.name)}</strong></td>
         <td>${escapeHtml(p.category_name || '—')}</td>
@@ -461,7 +461,6 @@ function renderProductsTable() {
         <td><span class="toggle-badge ${p.available ? 'toggle-on' : 'toggle-off'}">${p.available ? i18nAdminStore[currentLang].js.yes : i18nAdminStore[currentLang].js.no}</span></td>
         <td>${stockCell}</td>
         <td>
-          <button class="btn-icon" onclick="editProduct(${p.id})" title="Edit">✏️</button>
           <button class="btn-icon danger" onclick="deleteProduct(${p.id})" title="Delete">🗑️</button>
         </td>
       </tr>
@@ -1236,6 +1235,60 @@ function setupEventListeners() {
   if (recentOrdersBody) {
     recentOrdersBody.addEventListener('click', handleOrderRowClick);
     recentOrdersBody.addEventListener('keydown', handleOrderRowKeydown);
+  }
+
+  // Product table row click & keydown delegation (registered once)
+  const handleProductRowClick = (e) => {
+    if (e.target.closest('select, button, a, input, label')) return;
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim().length > 0) return;
+    const row = e.target.closest('tr[data-product-id]');
+    if (!row) return;
+    const id = parseInt(row.dataset.productId, 10);
+    if (id) editProduct(id);
+  };
+
+  const handleProductRowKeydown = (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    if (e.target.closest('select, button, a, input, label')) return;
+    const row = e.target.closest('tr[data-product-id]');
+    if (!row) return;
+    if (e.key === ' ') e.preventDefault();
+    const id = parseInt(row.dataset.productId, 10);
+    if (id) editProduct(id);
+  };
+
+  const productsBody = document.getElementById('productsBody');
+  if (productsBody) {
+    productsBody.addEventListener('click', handleProductRowClick);
+    productsBody.addEventListener('keydown', handleProductRowKeydown);
+  }
+
+  // Category table row click & keydown delegation (registered once)
+  const handleCategoryRowClick = (e) => {
+    if (e.target.closest('select, button, a, input, label')) return;
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim().length > 0) return;
+    const row = e.target.closest('tr[data-category-id]');
+    if (!row) return;
+    const id = parseInt(row.dataset.categoryId, 10);
+    if (id) editCategory(id);
+  };
+
+  const handleCategoryRowKeydown = (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    if (e.target.closest('select, button, a, input, label')) return;
+    const row = e.target.closest('tr[data-category-id]');
+    if (!row) return;
+    if (e.key === ' ') e.preventDefault();
+    const id = parseInt(row.dataset.categoryId, 10);
+    if (id) editCategory(id);
+  };
+
+  const categoriesBody = document.getElementById('categoriesBody');
+  if (categoriesBody) {
+    categoriesBody.addEventListener('click', handleCategoryRowClick);
+    categoriesBody.addEventListener('keydown', handleCategoryRowKeydown);
   }
 
   
@@ -2301,15 +2354,14 @@ function renderCategoriesTable() {
   }
 
   tbody.innerHTML = allCategories.map(cat => {
-    return `<tr>
+    return `<tr class="clickable-row category-row" data-category-id="${cat.id}" tabindex="0">
       <td>${cat.display_order}</td>
       <td style="font-size: 24px;">${cat.icon || '📦'}</td>
       <td><strong>${escapeHtml(cat.name)}</strong><br><small style="color:var(--text-light);">${escapeHtml(cat.slug)}</small></td>
       <td><span class="status-badge" style="background:#f0f4f8;color:var(--text);">${cat.product_count || 0} produits</span></td>
       <td>
         <div class="action-buttons">
-          <button class="btn-icon" onclick="editCategory(${cat.id})" title="Modifier">✏️</button>
-          <button class="btn-icon delete" onclick="deleteCategory(${cat.id})" title="Supprimer">🗑️</button>
+          <button class="btn-icon delete danger" onclick="deleteCategory(${cat.id})" title="Supprimer">🗑️</button>
         </div>
       </td>
     </tr>`;
@@ -2337,7 +2389,15 @@ function editCategory(id) {
   document.getElementById('catFormTitle').textContent = 'Modifier la catégorie';
   document.getElementById('catCancelBtn').style.display = 'inline-block';
   document.getElementById('catFormError').style.display = 'none';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  const formCard = document.getElementById('categoryForm')?.closest('.card') || document.getElementById('categoryForm');
+  if (formCard) {
+    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  const nameInput = document.getElementById('catName');
+  if (nameInput) {
+    nameInput.focus();
+  }
 }
 
 document.getElementById('categoryForm')?.addEventListener('submit', async (e) => {
