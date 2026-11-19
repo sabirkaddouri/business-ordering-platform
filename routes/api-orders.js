@@ -153,7 +153,8 @@ function createOrderRoutes(db) {
           product_id: product.id,
           product_name: product.name,
           quantity: qty,
-          price: product.price
+          price: product.price,
+          trackStock: (product.trackStock !== undefined ? product.trackStock : product.trackstock) != null ? parseInt(product.trackStock !== undefined ? product.trackStock : product.trackstock) : 0
         });
       }
 
@@ -202,46 +203,70 @@ function createOrderRoutes(db) {
 
       const total = Math.round(finalTotal * 100) / 100;
 
-      // Insert order using cleaned inputs
-      const orderResult = await db.run(
-        'INSERT INTO orders (customer_name, customer_phone, customer_email, customer_address, customer_city, notes, total) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [nameClean, phoneClean, emailClean, addressClean, cityClean, notesClean, total]
-      );
-
-      const orderId = orderResult.lastInsertRowid;
-
-      // Insert order items
-      for (const item of validatedItems) {
-        await db.run(
-          'INSERT INTO order_items (order_id, product_id, product_name, quantity, price) VALUES (?, ?, ?, ?, ?)',
-          [orderId, item.product_id, item.product_name, item.quantity, item.price]
+      // Execute order insertion, stock updates, promo count, and notification in an atomic transaction
+      const createdOrder = await db.transaction(async (tx) => {
+        // Insert order using cleaned inputs
+        const orderResult = await tx.run(
+          'INSERT INTO orders (customer_name, customer_phone, customer_email, customer_address, customer_city, notes, total) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [nameClean, phoneClean, emailClean, addressClean, cityClean, notesClean, total]
         );
-        // Decrement stock if trackStock is enabled
-        // Postgres uses GREATEST instead of MAX for scalar values
-        await db.run(
-          'UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ? AND trackStock = 1',
-          [item.quantity, item.product_id]
+
+        const orderId = orderResult.lastInsertRowid;
+
+        // Insert order items & atomically update tracked stock
+        for (const item of validatedItems) {
+          await tx.run(
+            'INSERT INTO order_items (order_id, product_id, product_name, quantity, price) VALUES (?, ?, ?, ?, ?)',
+            [orderId, item.product_id, item.product_name, item.quantity, item.price]
+          );
+
+          // Decrement stock if trackStock is enabled
+          if (item.trackStock === 1) {
+            const updateResult = await tx.run(
+              'UPDATE products SET stock = stock - ? WHERE id = ? AND trackStock = 1 AND stock >= ?',
+              [item.quantity, item.product_id, item.quantity]
+            );
+
+            if (updateResult.changes === 0) {
+              const currentProd = await tx.get('SELECT stock, name FROM products WHERE id = ?', [item.product_id]);
+              const available = (currentProd && currentProd.stock != null) ? Math.max(0, currentProd.stock) : 0;
+              const prodName = (currentProd && currentProd.name) || item.product_name;
+              const stockErr = new Error(`Not enough stock for "${prodName}"`);
+              stockErr.status = 409;
+              stockErr.stockPayload = {
+                error: `Not enough stock for "${prodName}"`,
+                productId: item.product_id,
+                available
+              };
+              throw stockErr;
+            }
+          }
+        }
+
+        // Increment promo usage count if a promo was applied
+        if (appliedPromo) {
+          await tx.run('UPDATE promotions SET usageCount = usageCount + 1 WHERE id = ?', [appliedPromo.id]);
+        }
+
+        // Create notification for new order
+        const notifMsg = `Nouvelle commande #${orderId} de ${nameClean} — ${total} MAD`;
+        await tx.run(
+          'INSERT INTO notifications (type, message, orderId) VALUES (?, ?, ?)',
+          ['new_order', notifMsg, orderId]
         );
-      }
 
-      // Increment promo usage count if a promo was applied
-      if (appliedPromo) {
-        await db.run('UPDATE promotions SET usageCount = usageCount + 1 WHERE id = ?', [appliedPromo.id]);
-      }
+        const order = await tx.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [orderId]);
+        const orderItems = await tx.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [orderId]);
 
-      // Create notification for new order
-      const order = await db.get('SELECT *, whatsapplog AS "whatsappLog" FROM orders WHERE id = ?', [orderId]);
-      const notifMsg = `Nouvelle commande #${orderId} de ${nameClean} — ${total} MAD`;
-      await db.run(
-        'INSERT INTO notifications (type, message, orderId) VALUES (?, ?, ?)',
-        ['new_order', notifMsg, orderId]
-      );
-
-      const orderItems = await db.all('SELECT oi.*, p.image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?', [orderId]);
+        return { ...order, items: orderItems };
+      });
 
       otpStore.delete(phoneClean);
-      res.status(201).json({ ...order, items: orderItems });
+      res.status(201).json(createdOrder);
     } catch (err) {
+      if (err.status === 409 && err.stockPayload) {
+        return res.status(409).json(err.stockPayload);
+      }
       console.error(err);
       res.status(500).json({ error: 'Server error.' });
     }

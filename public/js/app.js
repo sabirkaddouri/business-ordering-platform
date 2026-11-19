@@ -697,6 +697,21 @@ async function submitOrder(e) {
 
     if (!res.ok) {
       const err = await res.json();
+      if (res.status === 409) {
+        const cartItem = cart.find(i => i.id === err.productId);
+        const prodName = (cartItem && cartItem.name) || (err.error ? err.error.replace(/^Not enough stock for "(.*)"$/, '$1') : '');
+        const template = window.i18nStore[currentLang]?.js?.stockErr;
+        let msg;
+        if (template && prodName) {
+          msg = template.replace('{name}', prodName).replace('{available}', err.available ?? 0);
+        } else {
+          msg = err.error || window.i18nStore[currentLang]?.js?.orderErr || 'Not enough stock';
+        }
+        showToast(msg);
+        closeOrderModal();
+        openCart();
+        return;
+      }
       throw new Error(err.error || window.i18nStore[currentLang].js.orderErr);
     }
 

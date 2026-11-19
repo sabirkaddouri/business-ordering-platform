@@ -12,10 +12,11 @@ class DbHelper {
   }
 
   /** Run a query and return all matching rows as objects */
-  async all(sql, params = []) {
+  async _queryAll(target, sql, params = []) {
     try {
       const convertedSql = this._convertSql(sql);
-      const res = await this.pool.query(convertedSql, params);
+      const safeParams = params.map(v => v === undefined ? null : v);
+      const res = await target.query(convertedSql, safeParams);
       return res.rows;
     } catch (err) {
       console.error('DB all() error:', err.message, sql);
@@ -24,10 +25,11 @@ class DbHelper {
   }
 
   /** Run a query and return the first matching row as an object, or null */
-  async get(sql, params = []) {
+  async _queryGet(target, sql, params = []) {
     try {
       const convertedSql = this._convertSql(sql);
-      const res = await this.pool.query(convertedSql, params);
+      const safeParams = params.map(v => v === undefined ? null : v);
+      const res = await target.query(convertedSql, safeParams);
       return res.rows.length > 0 ? res.rows[0] : null;
     } catch (err) {
       console.error('DB get() error:', err.message, sql);
@@ -36,7 +38,7 @@ class DbHelper {
   }
 
   /** Run a statement (INSERT/UPDATE/DELETE) and return { lastInsertRowid, changes } */
-  async run(sql, params = []) {
+  async _queryRun(target, sql, params = []) {
     try {
       let convertedSql = this._convertSql(sql);
       
@@ -49,7 +51,7 @@ class DbHelper {
       // convert undefined to null as pg requires
       const safeParams = params.map(v => v === undefined ? null : v);
       
-      const res = await this.pool.query(convertedSql, safeParams);
+      const res = await target.query(convertedSql, safeParams);
       
       let lastInsertRowid = null;
       if (isInsert && res.rows.length > 0) {
@@ -65,6 +67,42 @@ class DbHelper {
         console.error('DB run() error:', err.message, sql);
       }
       throw err;
+    }
+  }
+
+  async all(sql, params = []) {
+    return this._queryAll(this.pool, sql, params);
+  }
+
+  async get(sql, params = []) {
+    return this._queryGet(this.pool, sql, params);
+  }
+
+  async run(sql, params = []) {
+    return this._queryRun(this.pool, sql, params);
+  }
+
+  async transaction(callback) {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const tx = {
+        all: (sql, params = []) => this._queryAll(client, sql, params),
+        get: (sql, params = []) => this._queryGet(client, sql, params),
+        run: (sql, params = []) => this._queryRun(client, sql, params)
+      };
+      const result = await callback(tx);
+      await client.query('COMMIT');
+      return result;
+    } catch (err) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackErr) {
+        console.error('DB transaction rollback error:', rollbackErr.message);
+      }
+      throw err;
+    } finally {
+      client.release();
     }
   }
 }
