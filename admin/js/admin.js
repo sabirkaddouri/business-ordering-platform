@@ -1366,6 +1366,12 @@ function setupEventListeners() {
     });
   }
 
+  // City Delivery CSV Export
+  const cityExportBtn = document.getElementById('cityExportBtn');
+  if (cityExportBtn) {
+    cityExportBtn.addEventListener('click', exportCityCSV);
+  }
+
   // Order detail close
   document.getElementById('orderDetailClose').addEventListener('click', () => {
     document.getElementById('orderDetailModal').classList.remove('active');
@@ -2297,6 +2303,18 @@ function updateCityChart(groupsArray) {
 }
 
 window.exportCityCSV = function() {
+  const exportBtn = document.getElementById('cityExportBtn');
+  if (exportBtn) {
+    if (exportBtn.disabled) return;
+    const originalContent = exportBtn.innerHTML;
+    exportBtn.disabled = true;
+    exportBtn.textContent = '✓ Exporté';
+    setTimeout(() => {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = originalContent;
+    }, 1000);
+  }
+
   const selectedCity = document.getElementById('cityFilterSelect').value;
   
   // Get currently filtered data as shown in groups (so search and status filters apply)
