@@ -36,10 +36,10 @@ async function initDatabase() {
   `);
 
   // Migration: Add new columns to categories if they don't exist
-  try { await db.run("ALTER TABLE categories ADD COLUMN slug TEXT"); } catch(e) {}
-  try { await db.run("ALTER TABLE categories ADD COLUMN description TEXT"); } catch(e) {}
-  try { await db.run("ALTER TABLE categories ADD COLUMN display_order INTEGER DEFAULT 0"); } catch(e) {}
-  try { await db.run("ALTER TABLE categories ADD COLUMN created_at TIMESTAMP DEFAULT NOW()"); } catch(e) {}
+  try { await db.run("ALTER TABLE categories ADD COLUMN IF NOT EXISTS slug TEXT"); } catch(e) {}
+  try { await db.run("ALTER TABLE categories ADD COLUMN IF NOT EXISTS description TEXT"); } catch(e) {}
+  try { await db.run("ALTER TABLE categories ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0"); } catch(e) {}
+  try { await db.run("ALTER TABLE categories ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()"); } catch(e) {}
 
   await db.run(`
     CREATE TABLE IF NOT EXISTS products (
@@ -59,8 +59,8 @@ async function initDatabase() {
   `);
 
   // Migration: Add stock columns to products if not exists
-  try { await db.run('ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 0'); } catch(e) {}
-  try { await db.run('ALTER TABLE products ADD COLUMN trackStock INTEGER DEFAULT 0'); } catch(e) {}
+  try { await db.run('ALTER TABLE products ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0'); } catch(e) {}
+  try { await db.run('ALTER TABLE products ADD COLUMN IF NOT EXISTS trackStock INTEGER DEFAULT 0'); } catch(e) {}
 
   await db.run(`
     CREATE TABLE IF NOT EXISTS orders (
@@ -77,10 +77,10 @@ async function initDatabase() {
   `);
 
   // Migration: Add admin_note column if not exists
-  try { await db.run("ALTER TABLE orders ADD COLUMN admin_note TEXT DEFAULT ''"); } catch (e) {}
+  try { await db.run("ALTER TABLE orders ADD COLUMN IF NOT EXISTS admin_note TEXT DEFAULT ''"); } catch (e) {}
 
   // Migration: Add customer_city column if not exists
-  try { await db.run("ALTER TABLE orders ADD COLUMN customer_city TEXT DEFAULT ''"); } catch (e) {}
+  try { await db.run("ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_city TEXT DEFAULT ''"); } catch (e) {}
 
   await db.run(`
     CREATE TABLE IF NOT EXISTS order_items (
@@ -129,7 +129,7 @@ async function initDatabase() {
   ];
   for (const colDef of newCols) {
     try {
-      await db.run(`ALTER TABLE settings ADD COLUMN ${colDef}`);
+      await db.run(`ALTER TABLE settings ADD COLUMN IF NOT EXISTS ${colDef}`);
     } catch (e) {}
   }
 
@@ -150,9 +150,9 @@ async function initDatabase() {
     )
   `);
 
-  try { await db.run("ALTER TABLE promotions ADD COLUMN active INTEGER DEFAULT 1"); } catch (e) {}
-  try { await db.run("ALTER TABLE promotions ADD COLUMN scope TEXT DEFAULT 'all'"); } catch (e) {}
-  try { await db.run("ALTER TABLE promotions ADD COLUMN targetProducts TEXT DEFAULT '[]'"); } catch (e) {}
+  try { await db.run("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS active INTEGER DEFAULT 1"); } catch (e) {}
+  try { await db.run("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS scope TEXT DEFAULT 'all'"); } catch (e) {}
+  try { await db.run("ALTER TABLE promotions ADD COLUMN IF NOT EXISTS targetProducts TEXT DEFAULT '[]'"); } catch (e) {}
 
   // Notifications table
   await db.run(`
@@ -272,17 +272,17 @@ async function initDatabase() {
 
   // Migration: Add WhatsApp settings fields
   try {
-    await db.run("ALTER TABLE settings ADD COLUMN whatsappAdminNumber TEXT DEFAULT ''");
-    await db.run("ALTER TABLE settings ADD COLUMN whatsappEnabled INTEGER DEFAULT 1");
-    await db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateConfirmation TEXT DEFAULT ''");
-    await db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateShipped TEXT DEFAULT ''");
-    await db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateDelivered TEXT DEFAULT ''");
-    await db.run("ALTER TABLE settings ADD COLUMN whatsappTemplateCancelled TEXT DEFAULT ''");
+    await db.run("ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsappAdminNumber TEXT DEFAULT ''");
+    await db.run("ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsappEnabled INTEGER DEFAULT 1");
+    await db.run("ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsappTemplateConfirmation TEXT DEFAULT ''");
+    await db.run("ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsappTemplateShipped TEXT DEFAULT ''");
+    await db.run("ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsappTemplateDelivered TEXT DEFAULT ''");
+    await db.run("ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsappTemplateCancelled TEXT DEFAULT ''");
   } catch(e) {}
 
   // Migration: Add whatsappLog to orders
   try {
-    await db.run("ALTER TABLE orders ADD COLUMN whatsappLog TEXT DEFAULT '[]'");
+    await db.run("ALTER TABLE orders ADD COLUMN IF NOT EXISTS whatsappLog TEXT DEFAULT '[]'");
   } catch(e) {}
 
   return dbPool; // return the connected Pool so server.js can wrap it
