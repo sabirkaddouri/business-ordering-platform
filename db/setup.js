@@ -189,10 +189,11 @@ async function initDatabase() {
     console.log(`✅ Admin account created (${adminUsername})`);
   }
 
-  // Seed categories if table is empty
+  // Seed categories if table is empty and SEED_SAMPLE_DATA is enabled
   const catCount = await db.get('SELECT COUNT(*) as count FROM categories');
   if (parseInt(catCount.count) === 0) {
-    const categories = [
+    if (process.env.SEED_SAMPLE_DATA === 'true') {
+      const categories = [
       ['Miels & Tartinades',    'miels-tartinades',    '🍯', 'Miels artisanaux et tartinades 100% naturelles', 1],
       ['Huiles Extra Vierge',   'huiles-extra-vierge', '🫒', "Huiles d'olive extra vierge du Maroc", 2],
       ['Épices & Aromates',     'epices-aromates',     '🌿', 'Épices et aromates sélectionnés à Marrakech', 3],
@@ -204,6 +205,8 @@ async function initDatabase() {
         'INSERT INTO categories (name, slug, icon, description, display_order) VALUES (?, ?, ?, ?, ?)',
         [name, slug, icon, description, display_order]
       );
+    }
+      console.log('✅ Starter categories seeded');
     }
   } else {
     // Migration: backfill slugs for existing categories that don't have one
@@ -220,10 +223,11 @@ async function initDatabase() {
     }
   }
 
-  // Seed products if not exists
+  // Seed products if not exists and SEED_SAMPLE_DATA is enabled
   const prodCount = await db.get('SELECT COUNT(*) as count FROM products');
   if (parseInt(prodCount.count) === 0) {
-    const allCategories = await db.all('SELECT id, name, slug FROM categories');
+    if (process.env.SEED_SAMPLE_DATA === 'true') {
+      const allCategories = await db.all('SELECT id, name, slug FROM categories');
     const categoryLookup = {};
     if (allCategories) {
       for (const cat of allCategories) {
@@ -262,7 +266,8 @@ async function initDatabase() {
         [name, description, price, categoryId, image, featured]
       );
     }
-    console.log('✅ Sample products seeded');
+      console.log('✅ Sample products seeded');
+    }
   }
 
   // Migration: Add WhatsApp settings fields

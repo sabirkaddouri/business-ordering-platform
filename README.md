@@ -158,6 +158,7 @@ This application includes the following security hardening measures:
 | --- | --- |
 | `LOGIN_MAX_ATTEMPTS` | Maximum failed login attempts before lockout (default: 5) |
 | `LOGIN_LOCKOUT_MINUTES` | Lockout duration in minutes after reaching max failed login attempts (default: 10) |
+| `SEED_SAMPLE_DATA` | Set to `true` to seed starter categories and sample products on a fresh database (default: `false` starts empty). Alternatively, run `node scripts/seed-demo.js` to seed demo data at any time |
 | `ENFORCE_OTP` | Must stay `false` until a real SMS provider is connected. Set to `true` only after configuring a live SMS provider |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name for image uploads |
 | `CLOUDINARY_API_KEY` | Cloudinary API key |
