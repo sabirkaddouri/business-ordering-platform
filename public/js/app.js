@@ -391,34 +391,44 @@ function saveCart() {
 function getCartTotals() {
   const settings = window.shopSettings || {};
   let subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  
-  let discount = 0;
-  if (activePromo) {
-    if (activePromo.minimumOrder > 0 && subtotal < activePromo.minimumOrder) {
-      activePromo = null;
-    } else {
-      if (activePromo.type === 'percentage') {
-        discount = subtotal * (activePromo.value / 100);
-      } else {
-        discount = activePromo.value;
-      }
-      if (discount > subtotal) discount = subtotal;
-    }
-  }
 
+  // Step 1: delivery fee (matches server: delivery applied before tax and discount)
   let deliveryFee = settings.deliveryFee || 0;
   if (settings.freeDeliveryThreshold && subtotal >= settings.freeDeliveryThreshold) {
     deliveryFee = 0;
   }
-  
-  let total = subtotal - discount + deliveryFee;
+
+  // Step 2: pre-discount total = subtotal + delivery
+  let total = subtotal + deliveryFee;
+
+  // Step 3: tax on (subtotal + delivery) — matches server order
   let tax = 0;
-  
   if (settings.taxEnabled && settings.taxRate > 0) {
     tax = total * (settings.taxRate / 100);
     total += tax;
   }
-  
+
+  // Step 4: promo discount on the total (after delivery + tax) — matches server
+  let discount = 0;
+  if (activePromo) {
+    const minMet = !activePromo.minimumOrder || subtotal >= activePromo.minimumOrder;
+    if (!minMet) {
+      activePromo = null;
+    } else {
+      if (activePromo.type === 'percentage') {
+        discount = total * (activePromo.value / 100);
+      } else {
+        discount = Math.min(activePromo.value, total);
+      }
+      total = Math.max(0, total - discount);
+    }
+  }
+
+  // Step 5: round to 2 decimal places — matches server Math.round(x*100)/100
+  total = Math.round(total * 100) / 100;
+  discount = Math.round(discount * 100) / 100;
+  tax = Math.round(tax * 100) / 100;
+
   return { subtotal, discount, deliveryFee, tax, total };
 }
 
@@ -547,7 +557,7 @@ function updateCartUI() {
     const store = window.i18nStore?.[currentLang] || window.i18nStore?.['fr'] || {};
     if (settings.storeOpen === false) {
       checkoutBtn.disabled = true;
-      checkoutBtn.textContent = store.cart?.storeClosed || "Boutique fermée";
+      checkoutBtn.textContent = settings.storeClosedMessage || store.cart?.storeClosed || "Boutique fermée";
     } else if (minOrder > 0 && totals.subtotal < minOrder) {
       checkoutBtn.disabled = true;
       const minText = store.cart?.minOrder || "Min. commande: {min} MAD";
@@ -727,6 +737,12 @@ async function submitOrder(e) {
     // Close order modal, show success
     closeOrderModal();
     document.getElementById('orderIdDisplay').textContent = `${window.i18nStore[currentLang].js.orderPrefix}${order.id}`;
+    // Show the total returned by the server (authoritative price)
+    const orderTotalEl = document.getElementById('orderTotalDisplay');
+    if (orderTotalEl && order.total != null) {
+      const totalLabel = window.i18nStore[currentLang].success?.total || 'Total';
+      orderTotalEl.textContent = `${totalLabel} ${Number(order.total).toFixed(2)} MAD`;
+    }
     document.getElementById('successModal').classList.add('active');
     form.reset();
   } catch (err) {

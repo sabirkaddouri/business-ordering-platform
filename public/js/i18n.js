@@ -71,7 +71,8 @@ const i18n = {
     success: {
       title: "Merci pour votre commande !",
       p1: "Un membre de notre équipe vous contactera bientôt pour confirmer.",
-      btn: "Continuer mes achats"
+      btn: "Continuer mes achats",
+      total: "Montant total :"
     },
     js: {
       addedToCart: "ajouté au panier !",
@@ -206,7 +207,8 @@ const i18n = {
     success: {
       title: "Thank you for your order!",
       p1: "A member of our team will contact you soon to confirm.",
-      btn: "Continue shopping"
+      btn: "Continue shopping",
+      total: "Order total:"
     },
     js: {
       addedToCart: "added to cart!",
@@ -341,7 +343,8 @@ const i18n = {
     success: {
       title: "شكراً على طلبك!",
       p1: "سيتصل بك أحد أعضاء فريقنا قريباً لتأكيد طلبك.",
-      btn: "مواصلة التسوق"
+      btn: "مواصلة التسوق",
+      total: "المبلغ الإجمالي:"
     },
     js: {
       addedToCart: "أضيف إلى السلة!",
