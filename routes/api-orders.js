@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const { authenticateToken } = require('../middleware/auth');
 const { validate, z, idParamSchema } = require('../middleware/validate');
 const { sendOrderAlert } = require('../services/mailer');
+const { pick } = require('../utils/columns');
 
 
 // Strict per-IP limiters to prevent spam and SMS abuse
@@ -155,46 +156,69 @@ function createOrderRoutes(db) {
           product_name: product.name,
           quantity: qty,
           price: product.price,
-          trackStock: (product.trackStock !== undefined ? product.trackStock : product.trackstock) != null ? parseInt(product.trackStock !== undefined ? product.trackStock : product.trackstock) : 0
+          trackStock: Number(pick(product, 'trackStock', 0)) || 0
         });
       }
 
       // Apply Settings to Total
       const settingsRow = (await db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1')) || {};
-      if (settingsRow.storeOpen === 0) {
-        return res.status(400).json({ error: 'The store is currently closed.' });
+
+      // 1. Store Open check
+      const storeOpenVal = pick(settingsRow, 'storeOpen');
+      if (storeOpenVal !== undefined && Number(storeOpenVal) === 0) {
+        const closedMsg = (pick(settingsRow, 'storeClosedMessage') || '').trim();
+        return res.status(400).json({ error: closedMsg || 'The store is currently closed.' });
       }
-      
-      const minOrder = settingsRow.minOrderAmount || 0;
+
+      // 2. Minimum Order check
+      const minOrder = Number(pick(settingsRow, 'minOrderAmount', 0)) || 0;
       if (minOrder > 0 && subtotal < minOrder) {
         return res.status(400).json({ error: `Minimum order amount is ${minOrder} MAD.` });
       }
 
-      let finalDeliveryFee = settingsRow.deliveryFee || 0;
-      if (settingsRow.freeDeliveryThreshold && subtotal >= settingsRow.freeDeliveryThreshold) {
-        finalDeliveryFee = 0;
+      // 3. Delivery Fee & Free Delivery Threshold
+      let finalDeliveryFee = Number(pick(settingsRow, 'deliveryFee', 0)) || 0;
+      const freeThreshold = pick(settingsRow, 'freeDeliveryThreshold');
+      if (freeThreshold !== null && freeThreshold !== undefined && freeThreshold !== '') {
+        const thresholdNum = Number(freeThreshold);
+        if (thresholdNum > 0 && subtotal >= thresholdNum) {
+          finalDeliveryFee = 0;
+        }
       }
 
       let finalTotal = subtotal + finalDeliveryFee;
 
-      if (settingsRow.taxEnabled === 1 && settingsRow.taxRate > 0) {
-        finalTotal += finalTotal * (settingsRow.taxRate / 100);
+      // 4. Tax
+      let taxAmount = 0;
+      const taxEnabledVal = Number(pick(settingsRow, 'taxEnabled', 0));
+      const taxRateVal = Number(pick(settingsRow, 'taxRate', 0)) || 0;
+      if (taxEnabledVal === 1 && taxRateVal > 0) {
+        taxAmount = finalTotal * (taxRateVal / 100);
+        finalTotal += taxAmount;
       }
 
-      // Apply promo code discount if provided
+      // 5. Promo Code
       let appliedPromo = null;
       let discountAmount = 0;
       if (promoCode) {
-        // Changed COLLATE NOCASE to LOWER() for Postgres
-        const promo = await db.get('SELECT * FROM promotions WHERE LOWER(code) = LOWER(?) AND active = 1', [promoCode.trim()]);
+        const promo = await db.get(
+          'SELECT * FROM promotions WHERE LOWER(code) = LOWER(?)',
+          [promoCode.trim()]
+        );
         if (promo) {
-          const notExpired = !promo.expiryDate || new Date(promo.expiryDate) >= new Date();
-          const meetsMin = !promo.minimumOrder || subtotal >= promo.minimumOrder;
-          if (notExpired && meetsMin) {
-            if (promo.type === 'percentage') {
-              discountAmount = finalTotal * (promo.value / 100);
+          const promoActive = Number(pick(promo, 'active', 0)) === 1 || pick(promo, 'active') === true;
+          const expiryDateVal = pick(promo, 'expiryDate');
+          const notExpired = !expiryDateVal || new Date(expiryDateVal) >= new Date();
+          const minPromoOrder = Number(pick(promo, 'minimumOrder', 0)) || 0;
+          const meetsMin = minPromoOrder === 0 || subtotal >= minPromoOrder;
+
+          if (promoActive && notExpired && meetsMin) {
+            const promoType = pick(promo, 'type');
+            const promoVal = Number(pick(promo, 'value', 0)) || 0;
+            if (promoType === 'percentage') {
+              discountAmount = finalTotal * (promoVal / 100);
             } else {
-              discountAmount = Math.min(promo.value, finalTotal);
+              discountAmount = Math.min(promoVal, finalTotal);
             }
             finalTotal = Math.max(0, finalTotal - discountAmount);
             appliedPromo = promo;
@@ -267,7 +291,14 @@ function createOrderRoutes(db) {
 
       // Fire-and-forget email alert to shop owner (never block or roll back order)
       try {
-        sendOrderAlert(createdOrder).catch(err => {
+        sendOrderAlert({
+          ...createdOrder,
+          subtotal: Math.round(subtotal * 100) / 100,
+          delivery_fee: Math.round(finalDeliveryFee * 100) / 100,
+          discount: Math.round(discountAmount * 100) / 100,
+          tax: Math.round(taxAmount * 100) / 100,
+          total
+        }).catch(err => {
           console.error('Order email alert failed:', err && err.message ? err.message : 'Unknown error');
         });
       } catch (err) {

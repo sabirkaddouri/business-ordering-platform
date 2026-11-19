@@ -208,7 +208,7 @@ function createProductRoutes(db) {
         [nameClean, description || '', priceNum, parseInt(category_id) || null, image, featured ? 1 : 0, available !== undefined ? parseInt(available) : 1, parseInt(stock) || 0, trackStock ? 1 : 0]
       );
 
-      const newProduct = await db.get('SELECT * FROM products WHERE id = ?', [result.lastInsertRowid]);
+      const newProduct = await db.get('SELECT p.*, p.trackstock as "trackStock" FROM products p WHERE p.id = ?', [result.lastInsertRowid]);
       res.status(201).json(newProduct);
     } catch (err) {
       console.error(err);

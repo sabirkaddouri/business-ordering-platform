@@ -15,7 +15,10 @@ const emailI18n = {
     address: 'Adresse',
     notes: 'Notes',
     items: 'Articles commandés',
+    subtotal: 'Sous-total',
     deliveryFee: 'Frais de livraison',
+    discount: 'Remise promo',
+    tax: 'Taxe',
     total: 'Total',
     viewInAdmin: 'Voir la commande dans l\'administration',
     testSubject: 'Test de configuration email - Shop',
@@ -35,7 +38,10 @@ const emailI18n = {
     address: 'Address',
     notes: 'Notes',
     items: 'Ordered Items',
+    subtotal: 'Subtotal',
     deliveryFee: 'Delivery Fee',
+    discount: 'Promo Discount',
+    tax: 'Tax',
     total: 'Total',
     viewInAdmin: 'View Order in Admin Panel',
     testSubject: 'Email Configuration Test - Shop',
@@ -55,7 +61,10 @@ const emailI18n = {
     address: 'العنوان',
     notes: 'ملاحظات',
     items: 'المنتجات المطلوبة',
+    subtotal: 'المجموع الفرعي',
     deliveryFee: 'رسوم التوصيل',
+    discount: 'خصم ترويجي',
+    tax: 'الضريبة',
     total: 'المجموع',
     viewInAdmin: 'عرض الطلب في لوحة التحكم',
     testSubject: 'اختبار إعدادات البريد الإلكتروني - المتجر',
@@ -141,8 +150,11 @@ async function sendOrderAlert(order, transportOverride) {
   const adminUrl = siteUrl ? `${siteUrl}/admin` : '';
 
   const orderId = order.id || 'N/A';
-  const orderTotal = order.total !== undefined ? order.total : 0;
-  const deliveryFee = order.delivery_fee !== undefined ? order.delivery_fee : 0;
+  const subtotal = order.subtotal !== undefined && order.subtotal !== null ? Number(order.subtotal) : null;
+  const deliveryFee = order.delivery_fee !== undefined ? Number(order.delivery_fee) : 0;
+  const discount = order.discount !== undefined ? Number(order.discount) : 0;
+  const tax = order.tax !== undefined ? Number(order.tax) : 0;
+  const orderTotal = order.total !== undefined ? Number(order.total) : 0;
   const createdAt = order.created_at ? new Date(order.created_at).toLocaleString('fr-FR') : new Date().toLocaleString('fr-FR');
   const items = Array.isArray(order.items) ? order.items : [];
 
@@ -168,8 +180,21 @@ async function sendOrderAlert(order, transportOverride) {
     const price = it.price !== undefined ? it.price : 0;
     text += `  - ${name} x ${qty} — ${price} MAD\n`;
   });
-  text += `\n${t.deliveryFee}: ${deliveryFee} MAD\n`;
+
+  if (subtotal !== null) {
+    text += `\n${t.subtotal}: ${subtotal} MAD\n`;
+  } else {
+    text += '\n';
+  }
+  text += `${t.deliveryFee}: ${deliveryFee} MAD\n`;
+  if (discount > 0) {
+    text += `${t.discount}: -${discount} MAD\n`;
+  }
+  if (tax > 0) {
+    text += `${t.tax}: +${tax} MAD\n`;
+  }
   text += `${t.total}: ${orderTotal} MAD\n`;
+
   if (adminUrl) {
     text += `\n${t.viewInAdmin}: ${adminUrl}\n`;
   }
@@ -236,11 +261,26 @@ async function sendOrderAlert(order, transportOverride) {
     </table>
 
     <div style="background: #F5F0E8; padding: 12px 16px; border-radius: 6px; margin-top: 16px;">
+      ${subtotal !== null ? `
+      <p style="margin: 4px 0; display: flex; justify-content: space-between;">
+        <span>${escapeHtml(t.subtotal)}:</span>
+        <strong>${escapeHtml(subtotal)} MAD</strong>
+      </p>` : ''}
       <p style="margin: 4px 0; display: flex; justify-content: space-between;">
         <span>${escapeHtml(t.deliveryFee)}:</span>
         <strong>${escapeHtml(deliveryFee)} MAD</strong>
       </p>
-      <p style="margin: 4px 0; font-size: 18px; display: flex; justify-content: space-between; color: #C4622D;">
+      ${discount > 0 ? `
+      <p style="margin: 4px 0; display: flex; justify-content: space-between; color: #5C6E2E;">
+        <span>${escapeHtml(t.discount)}:</span>
+        <strong>-${escapeHtml(discount)} MAD</strong>
+      </p>` : ''}
+      ${tax > 0 ? `
+      <p style="margin: 4px 0; display: flex; justify-content: space-between;">
+        <span>${escapeHtml(t.tax)}:</span>
+        <strong>+${escapeHtml(tax)} MAD</strong>
+      </p>` : ''}
+      <p style="margin: 4px 0; font-size: 18px; display: flex; justify-content: space-between; color: #C4622D; border-top: 1px solid #E0D5C5; padding-top: 6px;">
         <span><strong>${escapeHtml(t.total)}:</strong></span>
         <strong>${escapeHtml(orderTotal)} MAD</strong>
       </p>
