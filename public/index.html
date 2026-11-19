@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Découvrez nos produits artisanaux marocains — produits du terroir 100% naturels, livrés partout au Maroc.">
+  <meta name="description" content="">
   <title>[Shop Name] — Produits du terroir marocain</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#C4622D">
@@ -327,6 +327,8 @@
           <a href="#about" data-i18n="nav.about">À Propos</a>
           <a href="#contact" data-i18n="nav.contact">Contact</a>
           <a href="/admin" data-i18n="nav.admin">Admin</a>
+          <a href="/privacy.html" data-i18n="legal.privacyLink">Confidentialité</a>
+          <a href="/terms.html" data-i18n="legal.termsLink">CGV</a>
         </div>
       </div>
       <div class="footer-bottom">
@@ -421,6 +423,7 @@
         </div>
         <div class="order-summary" id="orderSummary"></div>
         <button type="submit" class="btn btn-primary btn-full" data-i18n="checkout.btn">Confirmer ma commande</button>
+        <p style="font-size:12px; color:var(--text-light); text-align:center; margin-top:10px;" id="checkoutLegalNotice"></p>
       </form>
     </div>
   </div>
@@ -442,6 +445,8 @@
   <div class="toast" id="toast"></div>
 
   <script src="/js/i18n.js"></script>
+  <script src="/js/legal-config.js"></script>
+  <script src="/js/checkout-notice.js"></script>
   <script src="/js/cities.js"></script>
   <script src="/js/app.js"></script>
   <script>

@@ -5,6 +5,8 @@ const IMAGE_CACHE_NAME = `shop-images-${CACHE_VERSION}`;
 const PRECACHE_URLS = [
   '/',
   '/product.html',
+  '/privacy.html',
+  '/terms.html',
   '/offline.html',
   '/css/style.css',
   '/js/app.js',

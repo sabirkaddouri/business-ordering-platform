@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Politique de confidentialité">
+  <title>Confidentialité — Shop</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#C4622D">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Cairo:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { font-family: 'DM Sans', system-ui, sans-serif; }
+    html[lang="ar"] body, html[dir="rtl"] body { font-family: 'Cairo', system-ui, sans-serif; }
+    .nav-container { direction: ltr !important; }
+    .nav-logo { direction: ltr !important; text-align: left; }
+    .nav-links { direction: ltr !important; margin-left: 48px !important; margin-right: auto !important; gap: 32px !important; padding: 0 !important; }
+    .nav-link { text-align: center; }
+    .lang-switcher { padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 13px; border: 1px solid var(--dark-border); background: var(--bg); color: var(--text); cursor: pointer; transition: 0.3s; margin-left: 16px; margin-right: 0; direction: ltr !important; }
+    .cart-btn { margin-left: 16px !important; margin-right: 0 !important; }
+    @media (max-width: 768px) {
+      .nav-links { right: 0; left: 0; transform: translateY(-100%); transition: var(--transition); }
+      html[dir="rtl"] .nav-links.active { direction: rtl !important; text-align: right; }
+      html[dir="ltr"] .nav-links.active, html[lang="fr"] .nav-links.active { direction: ltr !important; text-align: left; }
+      .nav-links.active { transform: translateY(0); margin-left: 0 !important; }
+    }
+    .legal-page { padding-top: 100px; padding-bottom: 60px; min-height: 80vh; }
+    .legal-container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+    .legal-title { font-size: 32px; font-weight: 700; color: var(--brown); margin-bottom: 8px; }
+    .legal-updated { font-size: 13px; color: var(--text-light); margin-bottom: 32px; }
+    .legal-section { margin-bottom: 28px; }
+    .legal-section h2 { font-size: 18px; font-weight: 700; color: var(--brown); margin-bottom: 8px; }
+    .legal-section p { line-height: 1.7; color: var(--text); }
+    .legal-info-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .legal-info-label { font-weight: 600; color: var(--text); }
+    .legal-info-value { color: var(--text-light); }
+  </style>
+</head>
+<body>
+  <nav class="navbar" id="navbar">
+    <div class="nav-container" style="align-items: center;">
+      <a href="/" class="nav-logo" id="navLogo">
+        <span class="logo-icon">🌿</span>
+        <div class="logo-wrapper">
+          <span class="logo-title" id="navShopName">[Shop Name]</span>
+          <span class="logo-subtitle" id="navShopSubtitle"></span>
+        </div>
+      </a>
+      <div class="nav-links">
+        <a href="/#home" class="nav-link" data-i18n="nav.home">Accueil</a>
+        <a href="/#products" class="nav-link" data-i18n="nav.menu">Boutique</a>
+        <a href="/#about" class="nav-link" data-i18n="nav.about">À Propos</a>
+        <a href="/#contact" class="nav-link" data-i18n="nav.contact">Contact</a>
+      </div>
+      <div style="flex:1"></div>
+      <select id="langSwitcher" class="lang-switcher">
+        <option value="fr">FR</option>
+        <option value="en">EN</option>
+        <option value="ar">AR</option>
+      </select>
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu" style="margin-inline-start: 16px;" onclick="document.querySelector('.nav-links').classList.toggle('active')">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="legal-page">
+    <div class="legal-container">
+      <h1 class="legal-title" id="pageTitle" data-i18n="legal.privacyTitle">Politique de confidentialité</h1>
+      <p class="legal-updated" id="shopNameLine"></p>
+
+      <div class="legal-section">
+        <h2 data-i18n="legal.pSection1">Données collectées</h2>
+        <p data-i18n="legal.pSection1Body"></p>
+      </div>
+
+      <div class="legal-section">
+        <h2 data-i18n="legal.pSection2">Finalité</h2>
+        <p data-i18n="legal.pSection2Body"></p>
+      </div>
+
+      <div class="legal-section">
+        <h2 data-i18n="legal.pSection3">Destinataires</h2>
+        <p data-i18n="legal.pSection3Body"></p>
+      </div>
+
+      <div class="legal-section">
+        <h2 data-i18n="legal.pSection4">Conservation</h2>
+        <p data-i18n="legal.pSection4Body"></p>
+      </div>
+
+      <div class="legal-section">
+        <h2 data-i18n="legal.pSection5">Vos droits</h2>
+        <p data-i18n="legal.pSection5Body"></p>
+      </div>
+
+      <div id="cndpSection" class="legal-section" style="display:none;">
+        <div class="legal-info-row">
+          <span class="legal-info-label" data-i18n="legal.pCNDP">Référence CNDP :</span>
+          <span class="legal-info-value" id="cndpRef"></span>
+        </div>
+      </div>
+
+      <div class="legal-section">
+        <h2 data-i18n="legal.pSection6">Cookies</h2>
+        <p data-i18n="legal.pSection6Body"></p>
+      </div>
+
+      <div id="contactSection" class="legal-section">
+        <h2 data-i18n="legal.pContact">Contact</h2>
+        <p id="contactEmail"></p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <span class="logo-icon">🌿</span>
+          <div class="logo-wrapper">
+            <span class="logo-title" id="footerShopName">[Shop Name]</span>
+          </div>
+        </div>
+        <div class="footer-links">
+          <a href="/#home" data-i18n="nav.home">Accueil</a>
+          <a href="/#products" data-i18n="nav.menu">Boutique</a>
+          <a href="/#about" data-i18n="nav.about">À Propos</a>
+          <a href="/#contact" data-i18n="nav.contact">Contact</a>
+          <a href="/privacy.html" data-i18n="legal.privacyLink">Confidentialité</a>
+          <a href="/terms.html" data-i18n="legal.termsLink">CGV</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p data-i18n="footer.copy">© 2025 [Shop Name] — Tous droits réservés</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/i18n.js"></script>
+  <script src="/js/legal-config.js"></script>
+  <script src="/js/legal.js"></script>
+</body>
+</html>
