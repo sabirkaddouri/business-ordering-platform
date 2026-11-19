@@ -150,188 +150,7 @@ async function start() {
   const rawDb = await initDatabase();
   const db = new DbHelper(rawDb, saveDatabase);
 
-  // Lazy DB ref for SEO routes registered before start() completes
-  // (These routes use dbRef.db which is set after DB init)
-  if (!app._seoDbRef) app._seoDbRef = { db: null };
-  const seoDbRef = app._seoDbRef;
-  seoDbRef.db = db; // allow SEO routes to use db
-
-  // -- SEO route registrations (before static middleware) -------------------
-
-  // X-Robots-Tag middleware
-  app.use(['/admin', '/api'], (req, res, next) => {
-    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-    next();
-  });
-
-    // ── Server-side HTML render routes (before static middleware) ──────────
-  // These are registered before static middleware so they intercept / and /product.html
-  // before the static files are served. They use seoDbRef.db (set after DB init).
-  const indexHtmlPath = path.join(__dirname, 'public', 'index.html');
-  const productHtmlPath2 = path.join(__dirname, 'public', 'product.html');
-
-  app.get('/', async (req, res, next) => {
-    const dbRef = seoDbRef.db;
-    if (!dbRef) return next(); // DB not ready yet — shouldn't happen in practice
-    try {
-      let html = fs.readFileSync(indexHtmlPath, 'utf8');
-      const settings = await getCachedSettings(dbRef);
-      const base = getBaseUrl(req);
-      const title = settings.siteName
-        ? htmlEsc(settings.siteName) + ' — Boutique en ligne'
-        : 'Boutique en ligne';
-      const desc = settings.description
-        ? htmlEsc(settings.description.slice(0, 200))
-        : 'Découvrez notre boutique en ligne.';
-      const jsonLdParts = { '@context': 'https://schema.org', '@type': 'Store', name: settings.siteName || '' };
-      if (settings.phone) jsonLdParts.telephone = settings.phone;
-      if (settings.address) jsonLdParts.address = settings.address;
-      if (settings.instagramLink) jsonLdParts.sameAs = [settings.instagramLink];
-      jsonLdParts.url = base;
-      const jsonLd = JSON.stringify(jsonLdParts);
-      const metaBlock = [
-        '<title>' + title + '</title>',
-        '  <link rel="canonical" href="' + htmlEsc(base + '/') + '">',
-        '  <meta name="description" content="' + desc + '">',
-        '  <meta property="og:title" content="' + title + '">',
-        '  <meta property="og:description" content="' + desc + '">',
-        '  <meta property="og:type" content="website">',
-        '  <meta property="og:url" content="' + htmlEsc(base + '/') + '">',
-        '  <meta name="twitter:card" content="summary">',
-        '  <script type="application/ld+json">' + jsonLd + '</script>'
-      ].join('\n');
-      html = html.replace(/<title>[^<]*<\/title>/, '');
-      html = html.replace(/<meta name="description"[^>]*>/, '');
-      html = html.replace('<head>', '<head>\
-  ' + metaBlock);
-      res.type('text/html').send(html);
-    } catch (err) {
-      console.error('index render error:', err);
-      next();
-    }
-  });
-
-  app.get('/product.html', async (req, res, next) => {
-    const dbRef = seoDbRef.db;
-    if (!dbRef) return next();
-    try {
-      let html = fs.readFileSync(productHtmlPath2, 'utf8');
-      const base = getBaseUrl(req);
-      const id = parseInt(req.query.id, 10);
-      if (id && !isNaN(id)) {
-        const product = await dbRef.get('SELECT * FROM products WHERE id = ? LIMIT 1', [id]);
-        if (product) {
-          const settings = await getCachedSettings(dbRef);
-          const pName = product.name || '';
-          const pDesc = product.description || '';
-          const title = htmlEsc(pName) + (settings.siteName ? ' — ' + htmlEsc(settings.siteName) : '');
-          const desc = htmlEsc(pDesc.slice(0, 200)) || htmlEsc(pName);
-          const image = product.imageurl || product.imageUrl || product.image_url || '';
-          const price = product.price || 0;
-          const inStock = product.available !== false && product.available !== 0;
-          const offers = {
-            '@type': 'Offer',
-            priceCurrency: 'MAD',
-            price: price,
-            availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'
-          };
-          const jsonLdObj = {
-            '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: pName,
-            description: pDesc.slice(0, 500),
-            offers: offers,
-            url: base + '/product.html?id=' + id
-          };
-          if (image) jsonLdObj.image = image;
-          const metaBlock = [
-            '<title>' + title + '</title>',
-            '  <link rel="canonical" href="' + htmlEsc(base + '/product.html?id=' + id) + '">',
-            '  <meta name="description" content="' + desc + '">',
-            '  <meta property="og:title" content="' + title + '">',
-            '  <meta property="og:description" content="' + desc + '">',
-            '  <meta property="og:type" content="product">',
-            '  <meta property="og:url" content="' + htmlEsc(base + '/product.html?id=' + id) + '">',
-            image ? '  <meta property="og:image" content="' + htmlEsc(image) + '">' : '',
-            '  <meta name="twitter:card" content="summary_large_image">',
-            '  <script type="application/ld+json">' + JSON.stringify(jsonLdObj) + '</script>'
-          ].filter(Boolean).join('\n');
-          html = html.replace(/<title>[^<]*<\/title>/, '');
-          html = html.replace(/<meta name="description"[^>]*>/, '');
-          html = html.replace('<head>', '<head>\
-  ' + metaBlock);
-          return res.type('text/html').send(html);
-        }
-      }
-      next();
-    } catch (err) {
-      console.error('product render error:', err);
-      next();
-    }
-  });
-
-  // Serve static files (after SEO routes, before API routes)
-  app.use('/admin', express.static(path.join(__dirname, 'admin'), cacheConfig));
-  // Public static � index:false so app.get('/') handles the home page for meta injection
-  app.use(express.static(path.join(__dirname, 'public'), Object.assign({}, cacheConfig, { index: false })));
-
-  // X-Robots-Tag: noindex on /admin and /api (must be before static/routes that handle them,
-  // but static files will also trigger this since it's a middleware registered before them now)
-  app.use(['/admin', '/api'], (req, res, next) => {
-    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-    next();
-  });
-  // General API rate limiter (300 requests per 15 minutes per IP)
-  const generalApiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 300,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Too many requests. Please try again later.' }
-  });
-  app.use('/api/', generalApiLimiter);
-
-  // Health check endpoint
-  app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
-  });
-
-  // API Routes
-  app.use('/api/auth', createAuthRoutes(db));
-  app.use('/api/products', createProductRoutes(db));
-  app.use('/api/orders', createOrderRoutes(db));
-  app.use('/api/settings', createSettingsRoutes(db));
-  app.use('/api/analytics', createAnalyticsRoutes(db));
-  app.use('/api/promotions', createPromotionRoutes(db));
-  app.use('/api/notifications', createNotificationRoutes(db));
-  app.use('/api/categories', createCategoryRoutes(db));
-
-  // API 404 handler
-  app.use('/api/*', (req, res) => {
-    res.status(404).json({ error: 'Not found.' });
-  });
-
-  // Central error handler — no stack traces or internal details in production
-  app.use((err, req, res, next) => {
-    // Handle multer file size errors
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({ error: 'File too large. Maximum size is 5MB.' });
-    }
-    // Handle multer file filter errors
-    if (err.message === 'Only image files are allowed.') {
-      return res.status(400).json({ error: err.message });
-    }
-
-    console.error('Unhandled error:', err);
-    const statusCode = err.status || err.statusCode || 500;
-    const message = process.env.NODE_ENV === 'production'
-      ? 'Internal server error.'
-      : err.message || 'Internal server error.';
-    res.status(statusCode).json({ error: message });
-  });
-
-
-  // ── SEO helpers ─────────────────────────────────────────────────────────────
+  // ── SEO Helpers ────────────────────────────────────────────────────────────
 
   // Helper: get base URL from env or request
   function getBaseUrl(req) {
@@ -359,17 +178,26 @@ async function start() {
       .replace(/"/g, '&quot;');
   }
 
-  // Simple in-memory cache for settings (60 s TTL)
+  // Helper: safely escape JSON-LD output
+  function escapeJsonLd(jsonString) {
+    return String(jsonString || '')
+      .replace(/</g, '\\u003c')
+      .replace(/>/g, '\\u003e')
+      .replace(/&/g, '\\u0026')
+      .replace(/\u2028/g, '\\u2028')
+      .replace(/\u2029/g, '\\u2029');
+  }
+
+  // Simple in-memory cache for settings (60s TTL)
   let _settingsCache = null;
   let _settingsCacheAt = 0;
-  async function getCachedSettings(dbToUse) {
+  async function getCachedSettings() {
     if (_settingsCache && Date.now() - _settingsCacheAt < 60000) return _settingsCache;
-    const dbInst = dbToUse || db;
-    const row = await dbInst.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1');
+    const row = await db.get('SELECT * FROM settings ORDER BY id DESC LIMIT 1');
     if (!row) {
       _settingsCache = { siteName: '', description: '', phone: '', address: '', instagramLink: '' };
     } else {
-      const v = (k) => row[k] !== undefined ? row[k] : (row[k.toLowerCase()] || '');
+      const v = (k) => (row[k] !== undefined ? row[k] : (row[k.toLowerCase()] || ''));
       _settingsCache = {
         siteName: v('siteName') || '',
         description: v('description') || '',
@@ -382,13 +210,153 @@ async function start() {
     return _settingsCache;
   }
 
-  // ── X-Robots-Tag: noindex on /admin and /api ──────────────────────────────
+  // ── X-Robots-Tag: noindex on /admin and /api ───────────────────────────────
   app.use(['/admin', '/api'], (req, res, next) => {
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     next();
   });
 
-  // ── GET /robots.txt ───────────────────────────────────────────────────────
+  // ── Server-side HTML render routes (before static middleware) ───────────────
+  const indexHtmlPath = path.join(__dirname, 'public', 'index.html');
+  const productHtmlPath = path.join(__dirname, 'public', 'product.html');
+
+  app.get('/', async (req, res, next) => {
+    try {
+      let html = fs.readFileSync(indexHtmlPath, 'utf8');
+      const settings = await getCachedSettings();
+      const base = getBaseUrl(req);
+      const title = settings.siteName
+        ? htmlEsc(settings.siteName) + ' — Boutique en ligne'
+        : 'Boutique en ligne';
+      const desc = settings.description
+        ? htmlEsc(settings.description.slice(0, 200))
+        : 'Découvrez notre boutique en ligne.';
+
+      const jsonLdParts = { '@context': 'https://schema.org', '@type': 'Store', name: settings.siteName || '' };
+      if (settings.phone) jsonLdParts.telephone = settings.phone;
+      if (settings.address) jsonLdParts.address = settings.address;
+      if (settings.instagramLink) jsonLdParts.sameAs = [settings.instagramLink];
+      jsonLdParts.url = base;
+      const jsonLd = escapeJsonLd(JSON.stringify(jsonLdParts));
+
+      const metaBlock = [
+        '<title>' + title + '</title>',
+        '  <link rel="canonical" href="' + htmlEsc(base + '/') + '">',
+        '  <meta name="description" content="' + desc + '">',
+        '  <meta property="og:title" content="' + title + '">',
+        '  <meta property="og:description" content="' + desc + '">',
+        '  <meta property="og:type" content="website">',
+        '  <meta property="og:url" content="' + htmlEsc(base + '/') + '">',
+        '  <meta name="twitter:card" content="summary">',
+        '  <script type="application/ld+json">' + jsonLd + '</script>'
+      ].join('\n');
+
+      html = html.replace(/<title>[^<]*<\/title>/, '');
+      html = html.replace(/<meta name="description"[^>]*>/, '');
+      html = html.replace('<head>', () => '<head>\n  ' + metaBlock);
+      res.type('text/html').send(html);
+    } catch (err) {
+      console.error('index render error:', err);
+      next();
+    }
+  });
+
+  app.get('/product.html', async (req, res, next) => {
+    try {
+      let html = fs.readFileSync(productHtmlPath, 'utf8');
+      const base = getBaseUrl(req);
+      const id = parseInt(req.query.id, 10);
+      if (id && !isNaN(id)) {
+        const product = await db.get('SELECT * FROM products WHERE id = ? LIMIT 1', [id]);
+        if (product) {
+          const settings = await getCachedSettings();
+          const pName = product.name || '';
+          const pDesc = product.description || '';
+          const title = htmlEsc(pName) + (settings.siteName ? ' — ' + htmlEsc(settings.siteName) : '');
+          const desc = htmlEsc(pDesc.slice(0, 200)) || htmlEsc(pName);
+
+          const rawImage = (product.image || '').trim();
+          let image = '';
+          if (rawImage && rawImage !== 'default.jpg') {
+            image = rawImage.startsWith('http') ? rawImage : (base + '/images/' + rawImage);
+          }
+
+          const price = product.price || 0;
+          const inStock = product.available !== false && product.available !== 0;
+          const offers = {
+            '@type': 'Offer',
+            priceCurrency: 'MAD',
+            price: price,
+            availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'
+          };
+          const jsonLdObj = {
+            '@context': 'https://schema.org',
+            '@type': 'Product',
+            name: pName,
+            description: pDesc.slice(0, 500),
+            offers: offers,
+            url: base + '/product.html?id=' + id
+          };
+          if (image) jsonLdObj.image = image;
+          const jsonLd = escapeJsonLd(JSON.stringify(jsonLdObj));
+
+          const metaBlock = [
+            '<title>' + title + '</title>',
+            '  <link rel="canonical" href="' + htmlEsc(base + '/product.html?id=' + id) + '">',
+            '  <meta name="description" content="' + desc + '">',
+            '  <meta property="og:title" content="' + title + '">',
+            '  <meta property="og:description" content="' + desc + '">',
+            '  <meta property="og:type" content="product">',
+            '  <meta property="og:url" content="' + htmlEsc(base + '/product.html?id=' + id) + '">',
+            image ? '  <meta property="og:image" content="' + htmlEsc(image) + '">' : '',
+            '  <meta name="twitter:card" content="' + (image ? 'summary_large_image' : 'summary') + '">',
+            '  <script type="application/ld+json">' + jsonLd + '</script>'
+          ].filter(Boolean).join('\n');
+
+          html = html.replace(/<title>[^<]*<\/title>/, '');
+          html = html.replace(/<meta name="description"[^>]*>/, '');
+          html = html.replace('<head>', () => '<head>\n  ' + metaBlock);
+          return res.type('text/html').send(html);
+        }
+      }
+      next();
+    } catch (err) {
+      console.error('product render error:', err);
+      next();
+    }
+  });
+
+  // Serve static files (after SEO routes, before API routes)
+  app.use('/admin', express.static(path.join(__dirname, 'admin'), cacheConfig));
+  // Public static — index:false so app.get('/') handles the home page for meta injection
+  app.use(express.static(path.join(__dirname, 'public'), Object.assign({}, cacheConfig, { index: false })));
+
+  // General API rate limiter (300 requests per 15 minutes per IP)
+  const generalApiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please try again later.' }
+  });
+  app.use('/api/', generalApiLimiter);
+
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
+  // API Routes
+  app.use('/api/auth', createAuthRoutes(db));
+  app.use('/api/products', createProductRoutes(db));
+  app.use('/api/orders', createOrderRoutes(db));
+  app.use('/api/settings', createSettingsRoutes(db));
+  app.use('/api/analytics', createAnalyticsRoutes(db));
+  app.use('/api/promotions', createPromotionRoutes(db));
+  app.use('/api/notifications', createNotificationRoutes(db));
+  app.use('/api/categories', createCategoryRoutes(db));
+
+  // ── GET /robots.txt ────────────────────────────────────────────────────────
   app.get('/robots.txt', (req, res) => {
     const base = getBaseUrl(req);
     const body = [
@@ -401,12 +369,12 @@ async function start() {
     res.type('text/plain').send(body);
   });
 
-  // ── GET /sitemap.xml ──────────────────────────────────────────────────────
+  // ── GET /sitemap.xml ───────────────────────────────────────────────────────
   app.get('/sitemap.xml', async (req, res) => {
     try {
       const base = getBaseUrl(req);
       const products = await db.all(
-        "SELECT id, name FROM products WHERE available != 0 ORDER BY id"
+        'SELECT id, name FROM products WHERE available != 0 ORDER BY id'
       );
       const today = new Date().toISOString().split('T')[0];
       const urls = [
@@ -433,6 +401,29 @@ async function start() {
     }
   });
 
+  // API 404 handler
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'Not found.' });
+  });
+
+  // Central error handler — no stack traces or internal details in production
+  app.use((err, req, res, next) => {
+    // Handle multer file size errors
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File too large. Maximum size is 5MB.' });
+    }
+    // Handle multer file filter errors
+    if (err.message === 'Only image files are allowed.') {
+      return res.status(400).json({ error: err.message });
+    }
+
+    console.error('Unhandled error:', err);
+    const statusCode = err.status || err.statusCode || 500;
+    const message = process.env.NODE_ENV === 'production'
+      ? 'Internal server error.'
+      : err.message || 'Internal server error.';
+    res.status(statusCode).json({ error: message });
+  });
 
   // Fallback routes
   app.get('/admin/*', (req, res) => {
