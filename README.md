@@ -68,6 +68,24 @@ A full-stack ordering and e-commerce platform for small businesses, with an admi
 
 6. **Open** `http://localhost:5000` in your browser.
 
+## Admin Password Management
+
+If you forget the admin password or need to rotate credentials, use the built-in CLI script:
+
+### Interactive Mode (Local / Terminal)
+```bash
+npm run reset-admin-password
+```
+Displays existing admin accounts, asks which one to reset, prompts for the new password twice with hidden input, enforces minimum 12 characters, rejects common weak passwords, and requests confirmation before saving.
+
+### Non-Interactive Mode (Railway / CI)
+```bash
+ADMIN_USERNAME="admin" NEW_ADMIN_PASSWORD="YourStrongPassword123!" npm run reset-admin-password
+```
+
+> [!NOTE]
+> **Session Expiry Notice:** Resetting the password takes effect immediately for all new login attempts. Note that existing active JWT login sessions remain valid for up to 2 hours (the token lifespan) following a reset.
+
 ## Project Structure
 
 - `/public` — client-facing HTML, CSS, and JavaScript files
