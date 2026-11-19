@@ -217,3 +217,62 @@ SITE_URL=https://www.yourdomain.com
 - `GET /sitemap.xml` — includes home, privacy, terms and all available products (1-hour cache)
 - Home page and product pages are server-side rendered with `<title>`, meta description, Open Graph tags, and JSON-LD structured data
 - Admin and API responses include `X-Robots-Tag: noindex, nofollow`
+
+## Order Email Alerts
+
+The platform can send instant email notifications to the shop owner whenever a new order is placed.
+
+### Configuration
+
+Add the following variables to your `.env` file:
+
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_username
+SMTP_PASS=your_password
+SMTP_FROM=orders@yourdomain.com
+OWNER_EMAIL=owner@yourdomain.com,partner@yourdomain.com
+EMAIL_LANG=fr
+```
+
+> **Note:** If `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, or `OWNER_EMAIL` is missing, email alerts are automatically disabled. `OWNER_EMAIL` supports multiple comma-separated addresses. `EMAIL_LANG` supports `fr` (default), `en`, and `ar`.
+>
+> **Important:** `SMTP_FROM` must be an email address allowed/verified by your SMTP provider.
+
+### Free SMTP Provider Setup
+
+#### Option A: Brevo (formerly Sendinblue) - Recommended
+1. Sign up for a free account at [brevo.com](https://www.brevo.com/) (300 free emails/day).
+2. Go to **SMTP & API** under your account settings.
+3. Generate a new SMTP key.
+4. Set the following in your `.env`:
+   - `SMTP_HOST=smtp-relay.brevo.com`
+   - `SMTP_PORT=587`
+   - `SMTP_SECURE=false`
+   - `SMTP_USER=` your Brevo account email
+   - `SMTP_PASS=` your generated SMTP key
+   - `SMTP_FROM=` an email address or sender verified in your Brevo account
+   - `OWNER_EMAIL=` your email address where you want to receive alerts
+
+#### Option B: Gmail (with App Password)
+1. In your Google Account, enable **2-Step Verification**.
+2. Go to **Security** -> **2-Step Verification** -> **App passwords** (at the bottom).
+3. Create an app password for "Mail".
+4. Set the following in your `.env`:
+   - `SMTP_HOST=smtp.gmail.com`
+   - `SMTP_PORT=587`
+   - `SMTP_SECURE=false`
+   - `SMTP_USER=` your Gmail address
+   - `SMTP_PASS=` the 16-character generated app password
+   - `SMTP_FROM=` your Gmail address
+   - `OWNER_EMAIL=` your email address where you want to receive alerts
+
+### Testing Email Configuration
+
+To test your SMTP settings without placing an order:
+
+```bash
+npm run test-email
+```

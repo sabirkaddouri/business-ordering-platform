@@ -65,6 +65,7 @@ const createAnalyticsRoutes = require('./routes/api-analytics');
 const createPromotionRoutes = require('./routes/api-promotions');
 const createNotificationRoutes = require('./routes/api-notifications');
 const createCategoryRoutes = require('./routes/api-categories');
+const { initMailer } = require('./services/mailer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -436,6 +437,7 @@ async function start() {
 
   // Start server
   app.listen(PORT, () => {
+    initMailer();
     console.log(`📦 Customer store: http://localhost:${PORT}`);
     console.log(`🔧 Admin dashboard: http://localhost:${PORT}/admin`);
     console.log(`📡 API: http://localhost:${PORT}/api\n`);

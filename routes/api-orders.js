@@ -2,6 +2,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { authenticateToken } = require('../middleware/auth');
 const { validate, z, idParamSchema } = require('../middleware/validate');
+const { sendOrderAlert } = require('../services/mailer');
 
 
 // Strict per-IP limiters to prevent spam and SMS abuse
@@ -263,6 +264,15 @@ function createOrderRoutes(db) {
 
       otpStore.delete(phoneClean);
       res.status(201).json(createdOrder);
+
+      // Fire-and-forget email alert to shop owner (never block or roll back order)
+      try {
+        sendOrderAlert(createdOrder).catch(err => {
+          console.error('Order email alert failed:', err && err.message ? err.message : 'Unknown error');
+        });
+      } catch (err) {
+        console.error('Order email alert failed:', err && err.message ? err.message : 'Unknown error');
+      }
     } catch (err) {
       if (err.status === 409 && err.stockPayload) {
         return res.status(409).json(err.stockPayload);
