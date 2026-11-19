@@ -2338,14 +2338,38 @@ window.exportCityCSV = function() {
   exportData.sort((a,b) => a.normalizedCity.localeCompare(b.normalizedCity));
 
   let csvContent = "Ville,Nom du client,Téléphone,Adresse complète,Total commande,Statut,Date de commande\n";
+
+  function sanitizeCsvField(val, isPhone = false) {
+    if (val == null) return '""';
+    let str = String(val).replace(/\r\n|\r|\n/g, ' ');
+    let needsQuote = false;
+    if (/^[=\-@\t\r]/.test(str) || /^\s*[=\-@]/.test(str)) {
+      needsQuote = true;
+    } else if (/^\+/.test(str) || /^\s*\+/.test(str)) {
+      if (isPhone) {
+        if (!/^\s*\+?[0-9\s()\-.]+\s*$/.test(str)) {
+          needsQuote = true;
+        }
+      } else {
+        needsQuote = true;
+      }
+    }
+    if (needsQuote) {
+      str = "'" + str;
+    }
+    return `"${str.replace(/"/g, '""')}"`;
+  }
   
   exportData.forEach(o => {
-    const safeName = `"${(o.customer_name || '').replace(/"/g, '""')}"`;
-    const safePhone = `"${(o.customer_phone || '').replace(/"/g, '""')}"`;
-    const safeAddress = `"${(o.customer_address || '').replace(/"/g, '""')}"`;
-    const dateStr = new Date(o.created_at).toLocaleDateString();
+    const safeCity = sanitizeCsvField(o.normalizedCity || '');
+    const safeName = sanitizeCsvField(o.customer_name || '');
+    const safePhone = sanitizeCsvField(o.customer_phone || '', true);
+    const safeAddress = sanitizeCsvField(o.customer_address || '');
+    const safeStatus = sanitizeCsvField(o.status || '');
+    const dateStr = sanitizeCsvField(o.created_at ? new Date(o.created_at).toLocaleDateString() : '');
+    const totalVal = o.total != null ? o.total : 0;
     
-    csvContent += `${o.normalizedCity},${safeName},${safePhone},${safeAddress},${o.total},${o.status},${dateStr}\n`;
+    csvContent += `${safeCity},${safeName},${safePhone},${safeAddress},${totalVal},${safeStatus},${dateStr}\n`;
   });
 
   const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
