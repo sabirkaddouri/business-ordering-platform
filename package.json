@@ -12,7 +12,7 @@
     "reset-admin-password": "node scripts/reset-admin-password.js"
   },
   "devDependencies": {
-    "nodemon": "^3.0.0",
+    "nodemon": "^3.1.14",
     "playwright": "^1.64.1"
   },
   "dependencies": {
