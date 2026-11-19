@@ -185,3 +185,35 @@ This application includes the following security hardening measures:
 ## License
 
 MIT License
+
+## SEO & Legal Pages
+
+### Legal pages
+
+Two static legal pages are included: `/privacy.html` (Privacy Policy) and `/terms.html` (Terms of Sale). They are auto-generated templates — **have them reviewed by a qualified lawyer before publishing**.
+
+Fill in your shop's legal details in `public/js/legal-config.js`:
+
+```js
+window.LEGAL_CONFIG = {
+  legalName: 'SARL Ma Boutique',
+  ice: '000000000000000',
+  rc: '123456',
+  contactEmail: 'contact@maboutique.ma',
+  returnDays: 7,
+  cndpReference: 'A-123-456' // leave empty to omit
+};
+```
+
+### SEO
+
+Set the `SITE_URL` environment variable to your production domain so sitemap and canonical links use the correct base URL:
+
+```
+SITE_URL=https://www.yourdomain.com
+```
+
+- `GET /robots.txt` — allows all crawlers, disallows /admin and /api
+- `GET /sitemap.xml` — includes home, privacy, terms and all available products (1-hour cache)
+- Home page and product pages are server-side rendered with `<title>`, meta description, Open Graph tags, and JSON-LD structured data
+- Admin and API responses include `X-Robots-Tag: noindex, nofollow`
