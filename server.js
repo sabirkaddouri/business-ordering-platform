@@ -381,7 +381,8 @@ async function start() {
       const urls = [
         { loc: base + '/', priority: '1.0' },
         { loc: base + '/privacy.html', priority: '0.3' },
-        { loc: base + '/terms.html', priority: '0.3' }
+        { loc: base + '/terms.html', priority: '0.3' },
+        { loc: base + '/legal.html', priority: '0.3' }
       ];
       for (const p of products) {
         urls.push({ loc: base + '/product.html?id=' + xmlEsc(String(p.id)), priority: '0.8' });

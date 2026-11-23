@@ -7,6 +7,7 @@ const PRECACHE_URLS = [
   '/product.html',
   '/privacy.html',
   '/terms.html',
+  '/legal.html',
   '/offline.html',
   '/css/style.css',
   '/js/app.js',

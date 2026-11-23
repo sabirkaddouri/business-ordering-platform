@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Mentions légales">
+  <title>Mentions légales — Shop</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#C4622D">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Cairo:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { font-family: 'DM Sans', system-ui, sans-serif; }
+    html[lang="ar"] body, html[dir="rtl"] body { font-family: 'Cairo', system-ui, sans-serif; }
+    .nav-container { direction: ltr !important; }
+    .nav-logo { direction: ltr !important; text-align: left; }
+    .nav-links { direction: ltr !important; margin-left: 48px !important; margin-right: auto !important; gap: 32px !important; padding: 0 !important; }
+    .nav-link { text-align: center; }
+    .lang-switcher { padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 13px; border: 1px solid var(--dark-border); background: var(--bg); color: var(--text); cursor: pointer; transition: 0.3s; margin-left: 16px; margin-right: 0; direction: ltr !important; }
+    .cart-btn { margin-left: 16px !important; margin-right: 0 !important; }
+    @media (max-width: 768px) {
+      .nav-links { right: 0; left: 0; transform: translateY(-100%); transition: var(--transition); }
+      html[dir="rtl"] .nav-links.active { direction: rtl !important; text-align: right; }
+      html[dir="ltr"] .nav-links.active, html[lang="fr"] .nav-links.active { direction: ltr !important; text-align: left; }
+      .nav-links.active { transform: translateY(0); margin-left: 0 !important; }
+    }
+    .legal-page { padding-top: 100px; padding-bottom: 60px; min-height: 80vh; }
+    .legal-container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+    .legal-title { font-size: 32px; font-weight: 700; color: var(--brown); margin-bottom: 8px; }
+    .legal-updated { font-size: 13px; color: var(--text-light); margin-bottom: 32px; }
+    .legal-section { margin-bottom: 28px; }
+    .legal-section h2 { font-size: 18px; font-weight: 700; color: var(--brown); margin-bottom: 8px; }
+    .legal-section p { line-height: 1.7; color: var(--text); }
+    .legal-section a { color: var(--brown); text-decoration: underline; }
+    .legal-info-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    .legal-info-label { font-weight: 600; color: var(--text); }
+    .legal-info-value { color: var(--text-light); }
+  </style>
+</head>
+<body>
+  <nav class="navbar" id="navbar">
+    <div class="nav-container" style="align-items: center;">
+      <a href="/" class="nav-logo" id="navLogo">
+        <span class="logo-icon">🌿</span>
+        <div class="logo-wrapper">
+          <span class="logo-title" id="navShopName">[Shop Name]</span>
+          <span class="logo-subtitle" id="navShopSubtitle"></span>
+        </div>
+      </a>
+      <div class="nav-links">
+        <a href="/#home" class="nav-link" data-i18n="nav.home">Accueil</a>
+        <a href="/#products" class="nav-link" data-i18n="nav.menu">Boutique</a>
+        <a href="/#about" class="nav-link" data-i18n="nav.about">À Propos</a>
+        <a href="/#contact" class="nav-link" data-i18n="nav.contact">Contact</a>
+      </div>
+      <div style="flex:1"></div>
+      <select id="langSwitcher" class="lang-switcher">
+        <option value="fr">FR</option>
+        <option value="en">EN</option>
+        <option value="ar">AR</option>
+      </select>
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu" style="margin-inline-start: 16px;" onclick="document.querySelector('.nav-links').classList.toggle('active')">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="legal-page">
+    <div class="legal-container">
+      <h1 class="legal-title" id="pageTitle" data-i18n="legal.legalTitle">Mentions légales</h1>
+      <p class="legal-updated" id="shopNameLine"></p>
+
+      <!-- Empty notice if no legal config has been filled -->
+      <div id="legalEmptyNotice" class="legal-section" style="display:none;">
+        <p data-i18n="legal.emptyNotice"></p>
+      </div>
+
+      <!-- Publisher Section -->
+      <div id="publisherSection" class="legal-section" style="display:none;">
+        <h2 data-i18n="legal.publisherTitle">Éditeur du site</h2>
+        <div id="pubShopRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.publisherShop">Nom commercial :</span> <span class="legal-info-value" id="pubShopVal"></span></div>
+        <div id="pubNameRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.publisherName">Raison sociale :</span> <span class="legal-info-value" id="pubNameVal"></span></div>
+        <div id="pubFormRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.publisherForm">Forme juridique :</span> <span class="legal-info-value" id="pubFormVal"></span></div>
+        <div id="pubCapitalRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.publisherCapital">Capital social :</span> <span class="legal-info-value" id="pubCapitalVal"></span></div>
+        <div id="pubAddressRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.publisherAddress">Adresse du siège :</span> <span class="legal-info-value" id="pubAddressVal"></span></div>
+        <div id="pubPhoneRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.publisherPhone">Téléphone :</span> <span class="legal-info-value" id="pubPhoneVal"></span></div>
+        <div id="pubEmailRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.publisherEmail">Email :</span> <span class="legal-info-value" id="pubEmailVal"></span></div>
+        <div id="pubICERow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.publisherICE">ICE :</span> <span class="legal-info-value" id="pubICEVal"></span></div>
+        <div id="pubRCRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.publisherRC">Registre du Commerce :</span> <span class="legal-info-value" id="pubRCVal"></span></div>
+        <div id="pubDirectorRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.publisherDirector">Directeur de la publication :</span> <span class="legal-info-value" id="pubDirectorVal"></span></div>
+      </div>
+
+      <!-- Hosting Section -->
+      <div id="hostSection" class="legal-section" style="display:none;">
+        <h2 data-i18n="legal.hostTitle">Hébergement du site</h2>
+        <div id="hostNameRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.hostName">Hébergeur :</span> <span class="legal-info-value" id="hostNameVal"></span></div>
+        <div id="hostAddressRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.hostAddress">Adresse :</span> <span class="legal-info-value" id="hostAddressVal"></span></div>
+        <div id="hostPhoneRow" class="legal-info-row" style="display:none;"><span class="legal-info-label" data-i18n="legal.hostPhone">Téléphone :</span> <span class="legal-info-value" id="hostPhoneVal"></span></div>
+      </div>
+
+      <!-- CNDP Section -->
+      <div id="cndpSection" class="legal-section" style="display:none;">
+        <h2 data-i18n="legal.cndpSectionTitle">Déclaration CNDP</h2>
+        <p data-i18n="legal.cndpDeclarationNotice"></p>
+        <div class="legal-info-row" style="margin-top: 8px;">
+          <span class="legal-info-label" data-i18n="legal.pCNDP">Référence CNDP :</span>
+          <span class="legal-info-value" id="cndpRef"></span>
+        </div>
+      </div>
+
+      <!-- Intellectual Property Section -->
+      <div class="legal-section">
+        <h2 data-i18n="legal.ipTitle">Propriété intellectuelle</h2>
+        <p data-i18n="legal.ipBody"></p>
+      </div>
+
+      <!-- Links to Privacy and Terms -->
+      <div class="legal-section">
+        <h2 data-i18n="legal.linksTitle">Politiques et conditions</h2>
+        <p>
+          <span data-i18n="legal.linksIntro">Pour plus d'informations, vous pouvez consulter notre</span>
+          <a href="/privacy.html" data-i18n="legal.privacyTitle">Politique de confidentialité</a>
+          <span data-i18n="legal.checkoutAnd">et notre</span>
+          <a href="/terms.html" data-i18n="legal.termsTitle">Conditions générales de vente</a>.
+        </p>
+      </div>
+
+      <!-- Template disclaimer note -->
+      <p class="legal-disclaimer" data-i18n="legal.disclaimer" style="font-size: 12px; color: var(--text-light); margin-top: 32px; border-top: 1px solid var(--dark-border); padding-top: 12px; font-style: italic;"></p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <span class="logo-icon">🌿</span>
+          <div class="logo-wrapper">
+            <span class="logo-title" id="footerShopName">[Shop Name]</span>
+          </div>
+        </div>
+        <div class="footer-links">
+          <a href="/#home" data-i18n="nav.home">Accueil</a>
+          <a href="/#products" data-i18n="nav.menu">Boutique</a>
+          <a href="/#about" data-i18n="nav.about">À Propos</a>
+          <a href="/#contact" data-i18n="nav.contact">Contact</a>
+          <a href="/privacy.html" data-i18n="legal.privacyLink">Confidentialité</a>
+          <a href="/terms.html" data-i18n="legal.termsLink">CGV</a>
+          <a href="/legal.html" data-i18n="legal.legalLink">Mentions légales</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p data-i18n="footer.copy">© 2025 [Shop Name] — Tous droits réservés</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/i18n.js"></script>
+  <script src="/js/legal-config.js"></script>
+  <script src="/js/legal.js"></script>
+</body>
+</html>
