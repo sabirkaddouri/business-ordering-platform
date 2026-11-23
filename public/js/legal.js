@@ -105,6 +105,36 @@
       afterSalesEl.textContent = t('legal.tSectionAfterSalesBody', { contact: contactStr });
     }
 
+    // ── Privacy: Data controller body ────────────────────────────────────────
+    const controllerEl = document.getElementById('pControllerBody');
+    if (controllerEl) {
+      const shopDisplay = s.siteName || '';
+      const legalDisplay = (cfg.legalName && cfg.legalName.trim()) ? (' (' + cfg.legalName.trim() + ')') : '';
+      const emailVal = (cfg.contactEmail && cfg.contactEmail.trim()) || s.orderEmail || '';
+      const emailDisplay = emailVal ? t('legal.pControllerEmail', { email: emailVal }) : '';
+      controllerEl.textContent = t('legal.pSectionControllerBody', {
+        shop: shopDisplay,
+        legalName: legalDisplay,
+        email: emailDisplay
+      });
+    }
+
+    // ── Privacy: Data hosting body ───────────────────────────────────────────
+    const hostingEl = document.getElementById('pHostingBody');
+    if (hostingEl) {
+      const isAbroad = cfg.dataHostedAbroad !== false;
+      const hostName = (cfg.hostName && cfg.hostName.trim()) ? cfg.hostName.trim() : t('legal.pHostDefault');
+      hostingEl.textContent = t(isAbroad ? 'legal.pSectionHostingAbroad' : 'legal.pSectionHostingLocal', {
+        hostName: hostName
+      });
+    }
+
+    // ── Privacy: Rights body ─────────────────────────────────────────────────
+    const rightsEl = document.getElementById('pRightsBody');
+    if (rightsEl) {
+      rightsEl.textContent = t('legal.pSection5Body', { contact: contactStr });
+    }
+
     // Shop name in nav + footer
     const shopName = s.siteName || '';
     document.querySelectorAll('#navShopName, #footerShopName').forEach(function (el) {
