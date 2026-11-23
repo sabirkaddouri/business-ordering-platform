@@ -86,6 +86,20 @@ ADMIN_USERNAME="admin" NEW_ADMIN_PASSWORD="YourStrongPassword123!" npm run reset
 > [!NOTE]
 > **Session Expiry Notice:** Resetting the password takes effect immediately for all new login attempts. Note that existing active JWT login sessions remain valid for up to 2 hours (the token lifespan) following a reset.
 
+## Legal Setup per Shop
+
+Each online shop operating in Morocco must comply with applicable commercial and data protection legislation (Law 31-08 for consumer protection and Law 09-08 for CNDP data protection).
+
+All legal details are configured in `public/js/legal-config.js` and automatically populate three multi-language pages:
+- **Mentions légales (`/legal.html`)**: Publisher identity (ICE, RC, legal form, capital, publication director), hosting provider, CNDP reference, and intellectual property.
+- **Politique de confidentialité (`/privacy.html`)**: Data controller identity, data hosting (including cross-border server location notices), customer rights (access, rectification, opposition, deletion), and CNDP declaration reference. Note: the storefront uses **zero tracking cookies** and **no third-party analytics**; browser `localStorage` is used solely for the cart and language preference.
+- **Conditions Générales de Vente (`/terms.html`)**: Prices (TTC/HT), delivery timeframes, payment on delivery, right of withdrawal (7-day legal minimum under Law 31-08, exclusions), and after-sales customer service.
+
+> [!IMPORTANT]
+> **Legal Disclaimer:** The included legal pages are standard templates and do not constitute legal advice. Each shop owner is responsible for their own legal compliance (CNDP prior declaration, cross-border transfer declaration if hosted abroad, and commercial registration). Have all pages reviewed by a qualified Moroccan business lawyer.
+>
+> 📄 **Complete Guide & Printable Checklist:** See [docs/SHOP-LEGAL-CHECKLIST.md](docs/SHOP-LEGAL-CHECKLIST.md) for full instructions on configuring each field and preparing your store for launch.
+
 ## Project Structure
 
 - `/public` — client-facing HTML, CSS, and JavaScript files
