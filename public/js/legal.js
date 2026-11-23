@@ -61,16 +61,49 @@
   // ── Shared: populate shop name from settings & legal config ───────────────
   function populateDynamic() {
     const cfg = window.LEGAL_CONFIG || {};
+    const s = window.__shopSettings || {};
     const days = cfg.returnDays || 7;
 
-    // Returns body: replace {days}
-    const returnsEl = document.getElementById('tReturnsBody');
-    if (returnsEl) {
-      returnsEl.textContent = t('legal.tSection6Body', { days: days });
+    const contactStr = (cfg.contactEmail && cfg.contactEmail.trim()) ||
+      s.orderEmail ||
+      (cfg.phone && cfg.phone.trim()) ||
+      s.phone ||
+      t('legal.tContactFallback');
+
+    // ── Terms: Prices body ──────────────────────────────────────────────────
+    const pricesEl = document.getElementById('tPricesBody');
+    if (pricesEl) {
+      const taxIncluded = cfg.pricesIncludeTax !== false;
+      pricesEl.textContent = t(taxIncluded ? 'legal.tPricesTaxIncluded' : 'legal.tPricesTaxExcluded');
     }
 
-    // Settings-based content (already fetched — stored in window.__shopSettings)
-    const s = window.__shopSettings || {};
+    // ── Terms: Delivery body ────────────────────────────────────────────────
+    const deliveryEl = document.getElementById('tDeliveryBody');
+    if (deliveryEl) {
+      const delTime = (cfg.deliveryTime && cfg.deliveryTime.trim())
+        ? cfg.deliveryTime.trim()
+        : t('legal.tDeliveryDefaultTime');
+      deliveryEl.textContent = t('legal.tSection5Body', { deliveryTime: delTime });
+    }
+
+    // ── Terms: Returns body ─────────────────────────────────────────────────
+    const returnsEl = document.getElementById('tReturnsBody');
+    if (returnsEl) {
+      const exclusions = (cfg.returnExclusions && cfg.returnExclusions.trim())
+        ? (' ' + t('legal.tReturnsExclusions', { exclusions: cfg.returnExclusions.trim() }))
+        : '';
+      returnsEl.textContent = t('legal.tSection6Body', {
+        days: days,
+        exclusions: exclusions,
+        contact: contactStr
+      });
+    }
+
+    // ── Terms: After-sales body ─────────────────────────────────────────────
+    const afterSalesEl = document.getElementById('tAfterSalesBody');
+    if (afterSalesEl) {
+      afterSalesEl.textContent = t('legal.tSectionAfterSalesBody', { contact: contactStr });
+    }
 
     // Shop name in nav + footer
     const shopName = s.siteName || '';
